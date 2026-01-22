@@ -1,0 +1,36 @@
+# Credenciais e dados sensíveis
+*.env
+.env
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Arquivos de configuração com credenciais
+**/credentials.json
+**/config.json
+**/secrets.json
+
+# Logs
+*.log
+logs/
+
+# Arquivos temporários
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Node modules (se houver)
+node_modules/
+
+# Arquivos de backup
+*.bak
+*.backup
+*~
+
+# Arquivos do n8n com credenciais (se necessário)
+# Descomente se quiser ignorar arquivos JSON específicos
+# **/workflows/*.json

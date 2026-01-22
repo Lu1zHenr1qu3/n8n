@@ -1,0 +1,2393 @@
+{
+  "name": "GHL - Exportar Conversas (novo)",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "contact_id",
+              "name": "contact_id",
+              "value": "={{ $json.body.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "contact_name",
+              "name": "contact_name",
+              "value": "={{ $json.body.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "contact_email",
+              "name": "contact_email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "contact_phone",
+              "name": "contact_phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "pipeline_name",
+              "name": "pipeline_name",
+              "value": "={{ $json.body.pipeline_name }}",
+              "type": "string"
+            },
+            {
+              "id": "pipeline_stage",
+              "name": "pipeline_stage",
+              "value": "={{ $json.body.pipleline_stage }}",
+              "type": "string"
+            },
+            {
+              "id": "pipeline_id",
+              "name": "pipeline_id",
+              "value": "={{ $json.body.pipeline_id }}",
+              "type": "string"
+            },
+            {
+              "id": "location_id",
+              "name": "location_id",
+              "value": "={{ $json.body.location.id || 'mZpTdAZQH6MbUWzvsLiS' }}",
+              "type": "string"
+            },
+            {
+              "id": "sdr_nome",
+              "name": "sdr_nome",
+              "value": "={{ $json.body.opportunity_owner?.name }}",
+              "type": "string"
+            },
+            {
+              "id": "sdr_email",
+              "name": "sdr_email",
+              "value": "={{ $json.body.opportunity_owner?.email }}",
+              "type": "string"
+            },
+            {
+              "id": "tratamento_interesse",
+              "name": "tratamento_interesse",
+              "value": "={{ $json.body.customData.tratamento_interesse }}",
+              "type": "string"
+            },
+            {
+              "id": "tags",
+              "name": "tags",
+              "value": "={{ $json.body.tags }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8e501d6-6109-432c-8789-99e017df5979",
+      "name": "Preparar Dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1920,
+        1088
+      ],
+      "notes": "Extrai campos do payload GHL"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/search?locationId={{ $json.location_id }}&contactId={{ $json.contact_id }}&pageSize=1000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GHL_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c74da6bb-68f2-472f-9348-99e06f1d2578",
+      "name": "Buscar Conversation ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1472,
+        1088
+      ],
+      "notes": "Busca ID da conversa no GHL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "conversation_id",
+              "name": "conversation_id",
+              "value": "={{ $json.conversations[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "canal_raw",
+              "name": "canal_raw",
+              "value": "={{ $json.conversations[0].type }}",
+              "type": "string"
+            },
+            {
+              "id": "1aabee36-2233-4d40-9b4b-409b818f8823",
+              "name": "locationId",
+              "value": "={{ $json.conversations[0].locationId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "75f305cf-7595-4c5f-84bc-6698935dcbb8",
+      "name": "Extrair Conversation ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1248,
+        1088
+      ],
+      "notes": "Extrai ID da primeira conversa encontrada"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-transcricao",
+              "leftValue": "={{ $json.transcricao }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c3c4b66d-e27f-4263-b1cd-12a56baaab2b",
+      "name": "Verificar Transcrição",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        1088
+      ],
+      "notes": "Só analisa se tem transcrição válida"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "score_fallback",
+              "name": "score_qualidade",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "sentimento_fallback",
+              "name": "sentimento",
+              "value": "sem_analise",
+              "type": "string"
+            },
+            {
+              "id": "feedback_fallback",
+              "name": "feedback_ia",
+              "value": "Transcrição vazia - não foi possível analisar",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1e1904c8-bc58-406b-83c2-609e2f58c00f",
+      "name": "Fallback (Sem Transcrição)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2416,
+        1264
+      ],
+      "notes": "Valores padrão quando não há transcrição"
+    },
+    {
+      "parameters": {},
+      "id": "545bbf20-89e9-49f1-8d60-153e6964069c",
+      "name": "Merge Análise + Fallback",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2704,
+        1088
+      ],
+      "notes": "Une branches (com IA ou sem IA)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            },
+            {
+              "name": "input",
+              "value": "={{ $json.transcricao_texto || 'sem transcricao' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "74c50f65-f53b-418f-b9f5-69046e15dd60",
+      "name": "Gerar Embedding (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3152,
+        1088
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "CpuN9j3ruiXOEGy4",
+          "name": "OpenAi account 3"
+        }
+      },
+      "notes": "Gera embedding vector(1536) para busca semântica"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 3,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "60f81c66-a54d-4b30-b800-05004787e674",
+              "leftValue": "={{ $json.results.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3824,
+        1088
+      ],
+      "id": "ed0c9017-4238-4a0f-a26d-ea08481a7fa2",
+      "name": "Página Existe?",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code node: Normalizar Payload GHL\n// Versão 2.0 - Atualizado para extrair TODOS os campos relevantes do GHL (exceto attribution)\n\nconst body = $input.item.json.body;\nconst headers = $input.item.json.headers;\n\n// ========================================\n// 1. DADOS BÁSICOS DO CONTATO\n// ========================================\n\nconst contactId = body[\"Lead ID\"] || body.contact_id || null;\n\nconst fullName = body[\"Contact Name\"] || body.full_name || \n                 `${body[\"First Name\"] || body.first_name || ''} ${body[\"Last Name\"] || body.last_name || ''}`.trim() || \n                 '';\n\nconst email = body[\"Email\"] || body.email || '';\nconst phone = body[\"Phone\"] || body.phone || '';\n\n// ========================================\n// 2. DADOS DEMOGRÁFICOS DO CONTATO\n// ========================================\n\nconst sexo = body[\"Sexo\"] || '';\nconst city = body[\"city\"] || body.city || '';\nconst state = body[\"state\"] || body.state || '';\nconst country = body[\"country\"] || body.country || 'BR';\nconst dateOfBirth = body[\"date_of_birth\"] || '';\nconst fullAddress = body[\"full_address\"] || '';\nconst contactType = body[\"contact_type\"] || '';\nconst contactSource = body[\"contact_source\"] || body[\"Fonte do Contato\"] || '';\n\n// ========================================\n// 3. PIPELINE E STAGE\n// ========================================\n\nconst customData = body.customData || {};\n\nconst pipelineName = customData.Nome_Pipeline || \n                     body.pipeline_name || \n                     body[\"Pipeline Name\"] || '';\n                     \nconst pipelineStage = customData.Estagio_Pipeline || \n                      body.pipleline_stage || \n                      body.pipeline_stage || \n                      body[\"Pipeline Stage\"] || '';\n                      \nconst pipelineId = body.pipeline_id || body[\"Pipeline ID\"] || '';\n\n// ========================================\n// 4. DADOS CLÍNICOS / SDR\n// ========================================\n\n// Tratamento de Interesse (tentar várias possibilidades)\nconst tratamentoInteresse = body[\"Primeiro Tratamento de Interesse\"] ||\n                            body[\"Tratamentos de interesse\"] ||\n                            body[\"Tratamento de interesse\"] ||\n                            customData.Tratamentos ||\n                            body.tratamentos || \n                            '';\n\nconst queixaPrincipal = body[\"Queixa Principal\"] || '';\nconst anotacoesSDR = body[\"Anotações SDR\"] || '';\nconst qualificacaoSDR = body[\"Qualificação SDR\"] || '';\nconst temExames = body[\"Tem Exames?\"] || [];\nconst cobrouConsulta = body[\"Cobrou Consulta\"] || '';\nconst passouValores = body[\"Passou Valores?\"] || '';\nconst condicoesPagamento = body[\"Condições de Pagamento?\"] || '';\n\n// Nota e Análise existentes (se já preenchidos)\nconst notaSDR = body[\"Nota SDR\"] || '';\nconst analiseSDR = body[\"Análise SDR\"] || '';\nconst transcricaoSDRExistente = body[\"Transcrição SDR\"] || '';\n\n// Closer fields\nconst notaCloser = body[\"Nota Closer\"] || '';\nconst avaliacaoCloser = body[\"Avaliação Closer\"] || '';\nconst transcricaoCloser = body[\"Transcrição Closer\"] || '';\n\n// ========================================\n// 5. DADOS DE MARKETING / CAPTAÇÃO\n// ========================================\n\nconst origemCaptacao = body[\"Origem de Captação\"] || body.opportunity_source || body.source || '';\nconst fonteContato = body[\"Fonte do Contato\"] || body.contact_source || '';\nconst ultimoCanalContato = body[\"Ultimo Canal de Contato\"] || '';\nconst perfilCaptacao = body[\"Perfil de Captação\"] || '';\n\n// Primeiro (First Touch)\nconst primeiroAdId = body[\"Primeiro - Ad ID\"] || '';\nconst primeiroAdName = body[\"Primeiro - Ad Name\"] || '';\nconst primeiroMedium = body[\"Primeiro - Medium\"] || '';\nconst primeiroSessionSource = body[\"Primeiro - Session Source\"] || '';\nconst primeiroURL = body[\"Primeiro - URL\"] || '';\nconst primeiroMensagem = body[\"Primeiro -  Mensagem\"] || body[\"Primeiro - Mensagem\"] || '';\nconst primeiroCampaign = body[\"Primeiro - Campaign\"] || body[\"Primeiro - UTM Campaign\"] || '';\nconst primeiroCtwClid = body[\"Primeiro - Ctwa Clid\"] || '';\n\n// Last (Last Touch)\nconst lastAdId = body[\"Last - Ad ID\"] || '';\nconst lastAdName = body[\"Last - Ad Name\"] || '';\nconst lastMedium = body[\"Last - Medium\"] || '';\nconst lastSessionSource = body[\"Last - Session Source\"] || '';\nconst lastURL = body[\"Last - URL\"] || '';\nconst lastMensagem = body[\"Last - Mensagem\"] || '';\nconst lastCampaign = body[\"Last - Campaign\"] || body[\"Last - UTM Campaign\"] || '';\nconst lastCtwClid = body[\"Last - Ctwa Clid\"] || '';\n\n// ========================================\n// 6. DADOS DE OPORTUNIDADE\n// ========================================\n\nconst opportunityId = body.id || '';\nconst opportunityName = body.opportunity_name || '';\nconst opportunityStatus = body.status || '';\nconst opportunitySource = body.opportunity_source || body.source || '';\nconst leadValue = customData.Valor || \n                  body.value || \n                  body[\"Valor\"] || \n                  body.lead_value || \n                  0;\n\n// Datas da oportunidade\nconst dataAprovacao = customData.aprovacao || '';\nconst dataCriacao = customData.criacao || body.date_created || '';\nconst dataAgendamento = customData.agendamento || '';\nconst dataComparecimento = customData.comparecimento || '';\n\n// ========================================\n// 7. LOCATION (expandido)\n// ========================================\n\nconst locationData = body.location || {};\nconst locationId = body[\"Location ID\"] || locationData.id || 'mZpTdAZQH6MbUWzvsLiS';\nconst locationName = locationData.name || '';\nconst locationAddress = locationData.address || '';\nconst locationCity = locationData.city || '';\nconst locationState = locationData.state || '';\nconst locationFullAddress = locationData.fullAddress || '';\nconst locationPostalCode = locationData.postalCode || '';\n\n// ========================================\n// 8. USER / SDR DATA\n// ========================================\n\nconst userData = body.user || {};\nconst userFirstName = body[\"User First Name\"] || userData.firstName || '';\nconst userLastName = body[\"User Last Name\"] || userData.lastName || '';\nconst userEmail = body[\"User Email\"] || userData.email || '';\n\n// Opportunity Owner (pode ser diferente do user)\nconst opportunityOwner = body.opportunity_owner || body[\"Opportunity Owner\"] || {};\nconst ownerName = typeof opportunityOwner === 'string' ? opportunityOwner : \n                  (opportunityOwner.name || `${userFirstName} ${userLastName}`.trim() || '');\nconst ownerEmail = typeof opportunityOwner === 'object' ? (opportunityOwner.email || userEmail) : userEmail;\n\n// ========================================\n// 9. TAGS (converter string para array)\n// ========================================\n\nlet tags = [];\nif (body.tags) {\n  if (Array.isArray(body.tags)) {\n    tags = body.tags;\n  } else if (typeof body.tags === 'string') {\n    tags = body.tags.split(',').map(tag => tag.trim()).filter(tag => tag);\n  }\n}\n\n// ========================================\n// 10. CRIAR ESTRUTURA NORMALIZADA\n// ========================================\n\nconst normalizedBody = {\n  // === Identificadores ===\n  contact_id: contactId,\n  opportunity_id: opportunityId,\n  \n  // === Dados do Contato ===\n  full_name: fullName,\n  email: email,\n  phone: phone,\n  sexo: sexo,\n  date_of_birth: dateOfBirth,\n  \n  // === Endereço do Contato ===\n  city: city,\n  state: state,\n  country: country,\n  full_address: fullAddress,\n  contact_type: contactType,\n  contact_source: contactSource,\n  \n  // === Pipeline e Stage ===\n  pipeline_name: pipelineName,\n  pipleline_stage: pipelineStage, // mantendo typo do GHL\n  pipeline_stage: pipelineStage,  // versão correta também\n  pipeline_id: pipelineId,\n  \n  // === Dados Clínicos / SDR ===\n  tratamento_interesse: tratamentoInteresse,\n  queixa_principal: queixaPrincipal,\n  anotacoes_sdr: anotacoesSDR,\n  qualificacao_sdr: qualificacaoSDR,\n  tem_exames: temExames,\n  cobrou_consulta: cobrouConsulta,\n  passou_valores: passouValores,\n  condicoes_pagamento: condicoesPagamento,\n  \n  // === Notas/Análises Existentes ===\n  nota_sdr_existente: notaSDR,\n  analise_sdr_existente: analiseSDR,\n  transcricao_sdr_existente: transcricaoSDRExistente,\n  nota_closer_existente: notaCloser,\n  avaliacao_closer_existente: avaliacaoCloser,\n  transcricao_closer_existente: transcricaoCloser,\n  \n  // === Dados de Marketing / Captação ===\n  origem_captacao: origemCaptacao,\n  fonte_contato: fonteContato,\n  ultimo_canal_contato: ultimoCanalContato,\n  perfil_captacao: perfilCaptacao,\n  \n  // === First Touch ===\n  primeiro_ad_id: primeiroAdId,\n  primeiro_ad_name: primeiroAdName,\n  primeiro_medium: primeiroMedium,\n  primeiro_session_source: primeiroSessionSource,\n  primeiro_url: primeiroURL,\n  primeiro_mensagem: primeiroMensagem,\n  primeiro_campaign: primeiroCampaign,\n  primeiro_ctw_clid: primeiroCtwClid,\n  \n  // === Last Touch ===\n  last_ad_id: lastAdId,\n  last_ad_name: lastAdName,\n  last_medium: lastMedium,\n  last_session_source: lastSessionSource,\n  last_url: lastURL,\n  last_mensagem: lastMensagem,\n  last_campaign: lastCampaign,\n  last_ctw_clid: lastCtwClid,\n  \n  // === Oportunidade ===\n  opportunity_name: opportunityName,\n  opportunity_status: opportunityStatus,\n  opportunity_source: opportunitySource,\n  lead_value: leadValue,\n  \n  // === Datas ===\n  data_criacao: dataCriacao,\n  data_aprovacao: dataAprovacao,\n  data_agendamento: dataAgendamento,\n  data_comparecimento: dataComparecimento,\n  \n  // === Location (expandido) ===\n  location: {\n    id: locationId,\n    name: locationName,\n    address: locationAddress,\n    city: locationCity,\n    state: locationState,\n    fullAddress: locationFullAddress,\n    postalCode: locationPostalCode\n  },\n  \n  // === User / SDR ===\n  user: {\n    firstName: userFirstName,\n    lastName: userLastName,\n    email: userEmail\n  },\n  \n  // === Opportunity Owner ===\n  opportunity_owner: {\n    name: ownerName,\n    email: ownerEmail\n  },\n  \n  // SDR nome (atalho para usar nos nodes seguintes)\n  sdr_nome: ownerName || `${userFirstName} ${userLastName}`.trim(),\n  sdr_email: ownerEmail || userEmail,\n  \n  // === Tags ===\n  tags: tags,\n  \n  // === Custom Data Original (para referência) ===\n  customData: {\n    ...customData,\n    tratamento: tratamentoInteresse,\n    tratamento_interesse: tratamentoInteresse\n  }\n};\n\n// ========================================\n// 11. RETORNAR NO FORMATO ESPERADO\n// ========================================\n\nreturn [{\n  json: {\n    body: normalizedBody,\n    headers: headers,\n    params: $input.item.json.params || {},\n    query: $input.item.json.query || {}\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2144,
+        1088
+      ],
+      "id": "e10391a9-3004-4810-9e2c-6ee9590df39c",
+      "name": "Normalizar Payload GHL"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ $json.conversation_id }}/messages?locationId={{ $json.locationId }}&pageSize=1000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer YOUR_GHL_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        1088
+      ],
+      "id": "94dc1082-d7af-4300-a892-66b6bc2469a6",
+      "name": "Buscar Msg 1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc3a3770-f46e-4f28-8f31-fbc7b4e32e25",
+              "name": "acc",
+              "value": "={{$json.messages.messages || []}}",
+              "type": "string"
+            },
+            {
+              "id": "8d67a062-6a28-4dac-a9eb-9c9fc9d39f9f",
+              "name": "lastId1",
+              "value": "={{$json.messages.lastMessageId || null}}",
+              "type": "string"
+            },
+            {
+              "id": "181a2bc8-b4b5-458f-83bc-5e4aec23f163",
+              "name": "next1",
+              "value": "={{$json.messages.nextPage || false}}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -800,
+        1088
+      ],
+      "id": "7f2674b7-d378-474f-9a06-538902da8fe5",
+      "name": "ACC"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Continuar paginação a partir do node ACC\nconst inItem = $input.first()?.json || {};\nconst BASE = 'https://services.leadconnectorhq.com';\n\n// Token: ideal vir de um Set/credencial, aqui deixo fixo só pra teste\nconst authToken = 'YOUR_GHL_API_TOKEN';\n\n// Pegar dados do ACC (que mantém todos os campos anteriores)\nconst conversationId =\n  inItem?.conversation_id ||\n  inItem?.conversationId ||\n  inItem?.ConversationId ||\n  inItem?.messages?.messages?.[0]?.conversationId ||\n  null;\n\nconst locationId =\n  inItem?.locationId ||\n  inItem?.messages?.messages?.[0]?.locationId ||\n  null;\n\n// ✅ DEFINIR FUNÇÕES ANTES DE USAR\nconst shouldKeep = (m) =>\n  !m?.body?.startsWith('#switch') &&\n  m?.body !== 'Opportunity updated' &&\n  (m?.body || m?.attachments?.length > 0);\n\nconst pick = (m) => {\n  const result = {\n    id: m.id,\n    direction: m.direction,\n    messageType: m.messageType,\n    body: m.body,\n    dateAdded: m.dateAdded,\n    source: m.source,\n    status: m.status,\n    userId: m.userId,\n  };\n  \n  // Só adiciona attachments se tiver algum\n  if (m.attachments?.length > 0) {\n    result.attachments = m.attachments;\n  }\n  \n  return result;\n};\n\n\n// Pegar dados de paginação do ACC\nconst accString = inItem?.acc || '[]';\nlet acc = [];\n\ntry {\n  acc = JSON.parse(accString);\n} catch (e) {\n  acc = Array.isArray(accString) ? accString : [];\n\n  if (acc.length === 0 && inItem?.messages?.messages) {\n    acc = Array.isArray(inItem.messages.messages) ? inItem.messages.messages : [];\n  }\n}\n\n// ✅ FILTRAR E APLICAR PICK NO ACC INICIAL\nacc = acc.filter(shouldKeep).map(pick);\n\nconst lastId = inItem?.lastId1 || inItem?.messages?.lastMessageId || null;\nconst hasNext = inItem?.next1 === true || inItem?.next1 === 'true' || inItem?.messages?.nextPage === true;\n\n// Contadores de falhas\nlet failedCount = 0;\nlet totalProcessed = 0;\n\n// Se não tem próxima página, retornar o que já foi coletado\nif (!hasNext || !lastId) {\n  failedCount = acc.filter(m => m?.status === 'failed').length;\n  totalProcessed = acc.length;\n  const successMessages = acc.filter(m => m?.status !== 'failed');\n  \n  return [\n    {\n      json: {\n        ...inItem,\n        msgs: {\n          messages: {\n            messages: successMessages,\n            lastMessageId: lastId,\n            nextPage: false,\n          },\n          lastMessageId: lastId,\n          nextPage: false,\n        },\n        meta: {\n          convId: conversationId,\n          locationId,\n          total: successMessages.length,\n          failedCount,\n          failedPercent: totalProcessed > 0 ? ((failedCount / totalProcessed) * 100).toFixed(1) + '%' : '0%',\n        },\n      },\n    },\n  ];\n}\n\nif (!conversationId || !locationId) {\n  console.log('DEBUG - inItem keys:', Object.keys(inItem));\n  console.log('DEBUG - conversationId:', conversationId);\n  console.log('DEBUG - locationId:', locationId);\n  throw new Error(`Faltou conversationId ou locationId. conversationId: ${conversationId}, locationId: ${locationId}`);\n}\n\nconst headers = {\n  Authorization: `Bearer ${authToken}`,\n  Version: '2021-04-15',\n  Accept: 'application/json',\n  LocationId: locationId,\n};\n\nconst pageSize = 1000;\nlet currentLastId = lastId;\nlet currentHasNext = hasNext;\n\n// Continuar paginação enquanto houver mais páginas\nwhile (currentHasNext && currentLastId) {\n  const qs = { locationId, pageSize, lastMessageId: currentLastId };\n\n  let res;\n  try {\n    res = await this.helpers.request({\n      method: 'GET',\n      uri: `${BASE}/conversations/${conversationId}/messages`,\n      qs,\n      headers,\n      json: true,\n    });\n  } catch (err) {\n    const status = err?.response?.status;\n    const data = err?.response?.data;\n    throw new Error(`Falha HTTP ${status || ''} - ${JSON.stringify(data || err.message)}`);\n  }\n\n  const payload = res?.messages || {};\n  const list = Array.isArray(payload.messages) ? payload.messages : [];\n\n  // ✅ FILTRAR E APLICAR PICK NAS NOVAS PÁGINAS\n  const filtered = list.filter(shouldKeep).map(pick);\n  acc = acc.concat(filtered);\n\n  currentLastId = payload.lastMessageId ?? null;\n  currentHasNext = Boolean(payload.nextPage);\n\n  if (acc.length > 100000) throw new Error('Limite de segurança (100k msgs) atingido');\n}\n\n// Contabilizar falhas\nfailedCount = acc.filter(m => m?.status === 'failed').length;\ntotalProcessed = acc.length;\n\n// Remover mensagens failed do array final\nconst successMessages = acc.filter(m => m?.status !== 'failed');\n\nreturn [{\n  json: {\n    // Só campos essenciais para próximos nodes\n    traceId: inItem.traceId,\n    conversation_id: conversationId,\n    locationId: locationId,\n    \n    // Mensagens processadas\n    msgs: successMessages,\n    \n    // Metadados\n    meta: {\n      total: successMessages.length,\n      failedCount,\n      failedPercent: totalProcessed > 0 ? ((failedCount / totalProcessed) * 100).toFixed(1) + '%' : '0%',\n      lastMessageId: currentLastId,\n      hasMore: currentHasNext,\n    },\n  },\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        1088
+      ],
+      "id": "7913f091-0c33-45da-a222-e81d1cdfb302",
+      "name": "Next Page Conversas"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==== CONFIG =========================================\nconst TZ = 'America/Sao_Paulo';\nconst LOCALE = 'pt-BR';\n\n// =====================================================\n\nconst inputData = $input.first()?.json || {};\n\n// Nome do contato vem do node anterior\nconst contactName = $('Preparar Dados').first().json.contact_name || 'Lead';\n\n// Busca TODAS as mensagens (incluindo páginas aninhadas)\nfunction getAllMessages() {\n  const found = [];\n  \n  function findMessages(obj, depth = 0) {\n    if (!obj || typeof obj !== 'object' || depth > 10) return;\n    \n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        if (item && item.id && item.direction && item.hasOwnProperty('body')) {\n          found.push(item);\n        } else if (item && typeof item === 'object') {\n          findMessages(item, depth + 1);\n        }\n      }\n      return;\n    }\n    \n    for (const key of Object.keys(obj)) {\n      const val = obj[key];\n      if (key === 'messages' && Array.isArray(val)) {\n        findMessages(val, depth + 1);\n      } else if (val && typeof val === 'object') {\n        findMessages(val, depth + 1);\n      }\n    }\n  }\n  \n  findMessages(inputData);\n  \n  const uniqueMap = new Map();\n  for (const msg of found) {\n    if (msg.id && !uniqueMap.has(msg.id)) {\n      uniqueMap.set(msg.id, msg);\n    }\n  }\n  \n  return Array.from(uniqueMap.values());\n}\n\n// Formata data compacta: \"13/01 16:48\"\nfunction fmtDate(iso) {\n  try {\n    const d = new Date(iso);\n    return d.toLocaleString(LOCALE, {\n      timeZone: TZ,\n      day: '2-digit',\n      month: '2-digit',\n      hour: '2-digit',\n      minute: '2-digit'\n    }).replace(',', '');\n  } catch {\n    return '';\n  }\n}\n\n// Detecta tipo de anexo\nfunction getAttachmentType(url) {\n  if (typeof url !== 'string') return 'arquivo';\n  const lower = url.toLowerCase();\n  if (lower.includes('.mp4') || lower.includes('.mov') || lower.includes('.avi')) return 'video';\n  if (lower.includes('.mp3') || lower.includes('.ogg') || lower.includes('.opus') || lower.includes('.m4a') || lower.includes('.aac') || lower.includes('.wav')) return 'audio';\n  if (lower.includes('.jpeg') || lower.includes('.jpg') || lower.includes('.png') || lower.includes('.gif') || lower.includes('.webp')) return 'imagem';\n  if (lower.includes('.pdf')) return 'pdf';\n  if (lower.includes('.doc') || lower.includes('.docx') || lower.includes('.xls') || lower.includes('.xlsx') || lower.includes('.ppt') || lower.includes('.pptx') || lower.includes('.txt')) return 'documento';\n  return 'arquivo';\n}\n\n// ========== CLASSIFICAÇÃO DE MENSAGENS ==========\n\nfunction isSystemEvent(msg) {\n  if ([28, 31, 32, 33, 34, 35].includes(msg?.type)) return true;\n  \n  const systemTypes = [\n    'TYPE_ACTIVITY_OPPORTUNITY',\n    'TYPE_ACTIVITY_APPOINTMENT',\n    'TYPE_ACTIVITY_PAYMENT',\n    'TYPE_ACTIVITY_INVOICE',\n    'TYPE_ACTIVITY_TASK',\n    'TYPE_ACTIVITY_NOTE',\n    'TYPE_INTERNAL_COMMENT'\n  ];\n  if (systemTypes.includes(msg?.messageType)) return true;\n  \n  return false;\n}\n\nfunction isUsefulMessage(msg) {\n  if (isSystemEvent(msg)) return false;\n  \n  const body = (msg?.body ?? '').toString().trim();\n  if (body.startsWith('#switch|')) return false;\n  \n  const hasText = body.length > 0;\n  const hasAttachments = Array.isArray(msg?.attachments) && msg.attachments.length > 0;\n  \n  return hasText || hasAttachments;\n}\n\n// ========== EXTRAÇÃO DE EVENTOS ==========\n\nfunction extractEvents(allMsgs) {\n  const eventos = [];\n  \n  for (const msg of allMsgs) {\n    if (!isSystemEvent(msg)) continue;\n    \n    const data = fmtDate(msg?.dateAdded);\n    const body = (msg?.body ?? '').toString().trim();\n    const msgType = msg?.messageType || '';\n    const type = msg?.type;\n    const bodyLower = body.toLowerCase();\n    \n    if (type === 31 || msgType === 'TYPE_ACTIVITY_APPOINTMENT') {\n      eventos.push({\n        data: data,\n        tipo: 'AGENDAMENTO',\n        detalhe: body || 'Agendamento criado'\n      });\n    }\n    else if (type === 32 || msgType === 'TYPE_ACTIVITY_PAYMENT') {\n      eventos.push({\n        data: data,\n        tipo: 'PAGAMENTO',\n        detalhe: body || 'Pagamento realizado'\n      });\n    }\n    else if (type === 33 || msgType === 'TYPE_ACTIVITY_INVOICE') {\n      eventos.push({\n        data: data,\n        tipo: 'FATURA',\n        detalhe: body || 'Fatura gerada'\n      });\n    }\n    else if (type === 28 || msgType === 'TYPE_ACTIVITY_OPPORTUNITY') {\n      if (bodyLower === 'opportunity updated') continue;\n      \n      let tipoEvento = 'STATUS';\n      \n      if (bodyLower.includes('status changed')) {\n        tipoEvento = 'STATUS_CHANGED';\n      } else if (bodyLower.includes('created')) {\n        tipoEvento = 'LEAD_CRIADO';\n      } else if (bodyLower.includes('compareceu')) {\n        tipoEvento = 'COMPARECEU';\n      } else if (bodyLower.includes('não compareceu') || bodyLower.includes('no show')) {\n        tipoEvento = 'NAO_COMPARECEU';\n      } else if (bodyLower.includes('ganho') || bodyLower.includes('won') || bodyLower.includes('fechado')) {\n        tipoEvento = 'GANHO';\n      } else if (bodyLower.includes('perdido') || bodyLower.includes('lost')) {\n        tipoEvento = 'PERDIDO';\n      }\n      \n      eventos.push({\n        data: data,\n        tipo: tipoEvento,\n        detalhe: body\n      });\n    }\n  }\n  \n  return eventos.sort((a, b) => (a.data || '').localeCompare(b.data || ''));\n}\n\n// ========== DETERMINA ROLE DA MENSAGEM ==========\n\nfunction getMessageRole(msg) {\n  // Inbound = sempre LEAD\n  if (msg?.direction === 'inbound') return 'LEAD';\n  \n  // Outbound com source workflow = WORKFLOW\n  if (msg?.source === 'workflow') return 'WORKFLOW';\n  \n  // Outbound de humano = SDR\n  return 'SDR';\n}\n\n// ========== PROCESSAMENTO ==========\n\nconst allRawMessages = getAllMessages()\n  .sort((a, b) => new Date(a?.dateAdded || 0) - new Date(b?.dateAdded || 0));\n\nconst chatMessages = allRawMessages.filter(isUsefulMessage);\nconst eventos = extractEvents(allRawMessages);\n\n// Contadores globais para indexar arquivos\nlet audioIndex = 0;\nlet imagemIndex = 0;\nlet pdfIndex = 0;\nlet docIndex = 0;\nlet videoIndex = 0;\nlet arquivoIndex = 0;\n\n// Arrays para arquivos a processar\nconst audiosParaTranscrever = [];\nconst imagensParaDescrever = [];\nconst documentosParaLer = [];\n\nconst chatLines = [];\n\nfor (const msg of chatMessages) {\n  const when = fmtDate(msg?.dateAdded);\n  const role = getMessageRole(msg);\n  let text = (msg?.body ?? '').toString().trim();\n  \n  // Processa anexos\n  if (Array.isArray(msg?.attachments) && msg.attachments.length > 0) {\n    const anexos = [];\n    \n    for (const att of msg.attachments) {\n      const url = typeof att === 'string' ? att : att?.url || '';\n      const tipo = getAttachmentType(url);\n      \n      const baseInfo = {\n        url: url,\n        role: role,\n        timestamp: msg?.dateAdded,\n        messageId: msg?.id\n      };\n      \n      if (tipo === 'audio') {\n        audioIndex++;\n        const id = 'AUDIO_' + audioIndex;\n        anexos.push('[' + id + ']');\n        audiosParaTranscrever.push({ id, ...baseInfo });\n      } \n      else if (tipo === 'imagem') {\n        imagemIndex++;\n        const id = 'IMAGEM_' + imagemIndex;\n        anexos.push('[' + id + ']');\n        imagensParaDescrever.push({ id, ...baseInfo });\n      }\n      else if (tipo === 'pdf') {\n        pdfIndex++;\n        const id = 'PDF_' + pdfIndex;\n        anexos.push('[' + id + ']');\n        documentosParaLer.push({ id, tipo: 'pdf', ...baseInfo });\n      }\n      else if (tipo === 'documento') {\n        docIndex++;\n        const id = 'DOC_' + docIndex;\n        anexos.push('[' + id + ']');\n        documentosParaLer.push({ id, tipo: 'documento', ...baseInfo });\n      }\n      else if (tipo === 'video') {\n        videoIndex++;\n        anexos.push('[VIDEO_' + videoIndex + ']');\n      }\n      else {\n        arquivoIndex++;\n        anexos.push('[ARQUIVO_' + arquivoIndex + ']');\n      }\n    }\n    \n    if (text) {\n      text = text + ' ' + anexos.join(' ');\n    } else {\n      text = anexos.join(' ');\n    }\n  }\n  \n  chatLines.push('[' + when + '] ' + role + ': ' + text);\n}\n\n// Monta transcrição\nconst transcricao = chatLines.join('\\n');\n\n// Resumo com período correto (primeira → última mensagem)\nconst resumo = {\n  total: chatMessages.length,\n  lead: chatMessages.filter(m => m.direction === 'inbound').length,\n  sdr: chatMessages.filter(m => m.direction === 'outbound' && m.source !== 'workflow').length,\n  workflow: chatMessages.filter(m => m.source === 'workflow').length,\n  periodo: chatMessages.length > 0 ? {\n    inicio: fmtDate(chatMessages[0]?.dateAdded),\n    fim: fmtDate(chatMessages[chatMessages.length - 1]?.dateAdded)\n  } : null\n};\n\n// ========== OUTPUT ESTRUTURADO ==========\nreturn [{\n  json: {\n    transcricao: transcricao,\n    lead_nome: contactName,\n    resumo: resumo,\n    eventos: eventos,\n    audios_para_transcrever: audiosParaTranscrever,\n    imagens_para_descrever: imagensParaDescrever,\n    documentos_para_ler: documentosParaLer\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        1088
+      ],
+      "id": "a738fc07-dae5-42b1-8486-d38dce5bbefe",
+      "name": "Prep Transcript"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Truncar transcrição antes de enviar para Claude\n// Limite: 20.000 caracteres (aprox 5k tokens) - deixa espaço para system prompt e resposta\n// Claude Sonnet 4 tem limite de 8.192 tokens total\n\nconst input = $input.first().json;\nconst transcricao = input.transcricao_markdown || input.transcricao_texto || '';\n\n// Limite de caracteres (15k = ~3.75k tokens)\n// System prompt ~1k tokens + transcrição 3.75k + resposta 2k + metadados 0.5k = ~7.25k tokens total (dentro do limite de 8.192)\nconst LIMITE_CARACTERES = 15000;\n\nif (!transcricao || transcricao.length === 0) {\n  return [{\n    json: {\n      ...input,\n      transcricao_markdown: '',\n      transcricao_texto: '',\n      transcricao_truncada: false,\n      transcricao_tamanho_original: 0\n    }\n  }];\n}\n\n// Se já está dentro do limite, não precisa truncar\nif (transcricao.length <= LIMITE_CARACTERES) {\n  return [{\n    json: {\n      ...input,\n      transcricao_markdown: transcricao,\n      transcricao_texto: transcricao.replace(/^#+.*$/gm, '').replace(/\\*\\*/g, '').replace(/---/g, '').trim(),\n      transcricao_truncada: false,\n      transcricao_tamanho_original: transcricao.length\n    }\n  }];\n}\n\n// Truncar mantendo início (50%) e fim (50%) - mais relevante para análise\nconst inicio = Math.floor(LIMITE_CARACTERES * 0.5); // 7.500 caracteres\nconst fim = LIMITE_CARACTERES - inicio; // 7.500 caracteres\n\nconst transcricaoTruncada = \n  transcricao.substring(0, inicio) + \n  '\\n\\n... [TRANSCRIÇÃO TRUNCADA - ' + transcricao.length + ' caracteres totais, mostrando primeiros ' + inicio + ' e últimos ' + fim + ' caracteres] ...\\n\\n' +\n  transcricao.substring(transcricao.length - fim);\n\nreturn [{\n  json: {\n    ...input,\n    transcricao_markdown: transcricaoTruncada,\n    transcricao_texto: transcricaoTruncada.replace(/^#+.*$/gm, '').replace(/\\*\\*/g, '').replace(/---/g, '').trim(),\n    transcricao_truncada: true,\n    transcricao_tamanho_original: transcricao.length,\n    transcricao_tamanho_truncado: transcricaoTruncada.length\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2176,
+        1072
+      ],
+      "id": "8aca9be3-b769-412e-a7bb-94dbbc7ed4c4",
+      "name": "truncar script"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar Embedding da Análise - APENAS o JSON da análise do Claude\n// NÃO inclui dados do Prep Transcript para evitar arquivo gigante\n\nconst rawInput = $input.first()?.json || $input.item?.json || {};\n\nlet content = '';\n\n// Formato do Anthropic: [{content: [{type: \"text\", text: \"```json\\n{...}\\n```\"}]}]\nif (Array.isArray(rawInput) && rawInput.length > 0) {\n  const firstItem = rawInput[0];\n  if (firstItem?.content && Array.isArray(firstItem.content)) {\n    const textItem = firstItem.content.find(item => item.type === 'text' && item.text);\n    if (textItem && textItem.text) {\n      content = textItem.text;\n    }\n  }\n} else if (rawInput.content && Array.isArray(rawInput.content)) {\n  const textItem = rawInput.content.find(item => item.type === 'text' && item.text);\n  if (textItem && textItem.text) {\n    content = textItem.text;\n  }\n}\n\n// Remover markdown code blocks\ncontent = content.trim();\nif (content.startsWith('```json')) {\n  content = content.replace(/^```json\\s*/i, '');\n} else if (content.startsWith('```')) {\n  content = content.replace(/^```\\s*/, '');\n}\ncontent = content.replace(/\\s*```\\s*$/, '').trim();\n\n// Extrair JSON\nconst jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\nif (jsonMatch) {\n  content = jsonMatch[0];\n}\n\n// Parse JSON\nconst analiseIA = JSON.parse(content);\n\n// Converter JSON completo para string - APENAS isso para embedding\nconst textoParaEmbedding = JSON.stringify(analiseIA);\n\n// Retornar APENAS o necessário - SEM dados do Prep Transcript\nreturn [{\n  json: {\n    texto_para_embedding: textoParaEmbedding\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2928,
+        1088
+      ],
+      "id": "5b1975fe-5e14-4856-8e03-34c5f020670c",
+      "name": "Preparar Embedding da Análise"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair Embedding - Versão Corrigida (SEM dados extras)\n// Extrai JSON do Claude + embedding - APENAS campos necessários\n\n// Buscar embedding do output do OpenAI\nconst embeddingArray = $json.data[0].embedding;\n\n// Buscar dados do Merge (pode ter output bruto do Claude)\nconst dadosMerge = $('Merge Análise + Fallback').first()?.json || {};\n\n// Extrair JSON do Claude se ainda estiver com markdown\nlet analiseIA = {};\n\n// Verificar se tem content (output bruto do Claude)\nif (dadosMerge.content && Array.isArray(dadosMerge.content)) {\n  const textItem = dadosMerge.content.find(item => item.type === 'text' && item.text);\n  if (textItem && textItem.text) {\n    let content = textItem.text.trim();\n    // Remover markdown\n    if (content.startsWith('```json')) {\n      content = content.replace(/^```json\\s*/i, '');\n    } else if (content.startsWith('```')) {\n      content = content.replace(/^```\\s*/, '');\n    }\n    content = content.replace(/\\s*```\\s*$/, '').trim();\n    // Extrair JSON\n    const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      try {\n        analiseIA = JSON.parse(jsonMatch[0]);\n      } catch (e) {\n        // Se não conseguir parsear, usar objeto vazio\n      }\n    }\n  }\n} else {\n  // Se já estiver extraído, usar diretamente\n  analiseIA = dadosMerge;\n}\n\n// Buscar APENAS campos essenciais do Prep Transcript (sem mensagens_json, transcricao_markdown, etc)\nconst prepData = $('Prep Transcript').first()?.json || {};\nconst camposEssenciais = {\n  conversation_id: prepData.conversation_id,\n  contact_id: prepData.contact_id,\n  contact_name: prepData.contact_name,\n  contact_email: prepData.contact_email,\n  contact_phone: prepData.contact_phone,\n  pipeline_name: prepData.pipeline_name,\n  pipeline_stage: prepData.pipeline_stage,\n  sdr_nome: prepData.sdr_nome,\n  agendou: prepData.agendou,\n  tratamento_interesse: prepData.tratamento_interesse,\n  total_mensagens: prepData.total_mensagens,\n  canal: prepData.canal,\n  primeira_mensagem: prepData.primeira_mensagem,\n  ultima_mensagem: prepData.ultima_mensagem\n};\n\n// Combinar APENAS campos necessários\nreturn [{\n  json: {\n    ...camposEssenciais,  // Apenas campos essenciais do Prep Transcript\n    ...analiseIA,  // Análise do Claude (extraída)\n    embedding: embeddingArray,  // Embedding do OpenAI\n    embedding_dimensoes: embeddingArray?.length || 0,\n    embedding_gerado_em: new Date().toISOString()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3376,
+        1088
+      ],
+      "id": "110bc36a-daba-472e-8ece-907c9285469b",
+      "name": "Extrair Embedding"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "agendou",
+              "name": "agendou",
+              "value": "={{ $json.tags.some(tag => ['agendado', 'confirmado', 'compareceu', 'ganho'].includes(tag)) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ea8d153e-c42d-4e73-8a62-ccdd6b8b9ebf",
+              "name": "compareceu",
+              "value": "={{ $json.tags.some(tag => ['ganho', 'compareceu'].includes(tag)) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "0ef039bc-6d5d-4dc4-9b45-2ab2558991af",
+              "name": "fechou_venda",
+              "value": "={{ $json.tags.some(tag => ['ganho'].includes(tag)) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "07cbd0f2-02ec-4ae1-b2fe-fd556afbc16d",
+      "name": "Calcular Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1696,
+        1088
+      ],
+      "notes": "Determina se conversa resultou em agendamento"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5056cbe9a283499b8ccada313fa9e253",
+              "leftValue": "={{ $json.audios_para_transcrever?.length > 0 || $json.imagens_para_descrever?.length > 0 || $json.documentos_para_ler?.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "033fe1b2-a8ec-4a0a-a6a2-8c1c6c4c1ef0",
+      "name": "Tem Mídia?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        1088
+      ],
+      "notes": "Verifica se há mídia para processar (áudios, imagens ou documentos)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "92a4463cf7bf4624aa6b02502b299e07",
+              "leftValue": "={{ $json.audios_para_transcrever?.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1e13936f-ba35-4a61-9be1-e88703db62e3",
+      "name": "Tem Áudios?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        976
+      ],
+      "notes": "Verifica se há áudios para transcrever"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "451fa8cc-7ead-45c1-bf11-1f0d707a262b",
+      "name": "Download Áudio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        608,
+        960
+      ],
+      "notes": "Baixa arquivo de áudio da URL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0175b27daedd40e9a02253831ad6e3da",
+              "name": "placeholder",
+              "value": "={{ $json.placeholder }}",
+              "type": "string"
+            },
+            {
+              "id": "10b94427c0b846008e6763c12b5cdd34",
+              "name": "transcricao",
+              "value": "={{ $json.transcricao }}",
+              "type": "string"
+            },
+            {
+              "id": "195b0b4478f24f6b9f08df335c0ccae6",
+              "name": "role",
+              "value": "={{ $json.role }}",
+              "type": "string"
+            },
+            {
+              "id": "4019535c33bf411c8f39193b2aa56c72",
+              "name": "tipo",
+              "value": "={{ $json.tipo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d01b204-0863-4ca2-b8af-6ab6f4416244",
+      "name": "Formatar Resultado Áudio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        960
+      ],
+      "notes": "Formata resultado da transcrição"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "32822632e2924e85b71294ce776fb99a",
+              "leftValue": "={{ $json.imagens_para_descrever?.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fd9708d6-e5be-42fa-b8a0-e14e9e65c231",
+      "name": "Tem Imagens?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        816
+      ],
+      "notes": "Verifica se há imagens para analisar"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "1e4d7ae7-48ad-4ec5-a8ed-4389fdce6900",
+      "name": "Download Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        608,
+        800
+      ],
+      "notes": "Baixa arquivo de imagem da URL"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "claude-3-7-sonnet-20250219",
+          "mode": "list",
+          "cachedResultName": "claude-3-7-sonnet-20250219"
+        },
+        "text": "Analise esta imagem com olhar clínico e odontológico. Descreva detalhadamente em português brasileiro: estruturas dentárias visíveis, condições gengivais, possíveis patologias orais, alinhamento dentário, presença de restaurações ou próteses, sinais de desgaste, alterações de cor, e qualquer outro aspecto relevante para diagnóstico odontológico. Retorne APENAS a descrição técnica, sem comentários adicionais.",
+        "imageUrls": "={{ $json.url }}",
+        "options": {
+          "maxTokens": 300
+        }
+      },
+      "id": "e26aef81-680f-4342-aa2b-acc54571647e",
+      "name": "Analisar Imagem",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        800,
+        800
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "d55jE3J0Dt8GSGKW",
+          "name": "Autorizacao Claude"
+        }
+      },
+      "notes": "Analisa imagem via Claude Vision"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7fd4387329024189a901968ba20e7a0a",
+              "name": "placeholder",
+              "value": "={{ $('Prep Transcript').first().json.imagens_para_descrever.find(i => i.url === $('Download Imagem').first().json.url)?.id || '[IMAGEM]' }}",
+              "type": "string"
+            },
+            {
+              "id": "411c457a052f4978983a3901e499d965",
+              "name": "descricao",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "f46533a3196a4e24899d3656984c1af1",
+              "name": "role",
+              "value": "={{ $('Prep Transcript').first().json.imagens_para_descrever.find(i => i.url === $('Download Imagem').first().json.url)?.role || 'LEAD' }}",
+              "type": "string"
+            },
+            {
+              "id": "04a251c3fd564c82882f13d661b7ee63",
+              "name": "tipo",
+              "value": "={{ $json.content[0].type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f84067c9-8fc9-44a9-bfcf-0b0906b08668",
+      "name": "Formatar Resultado Imagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        800
+      ],
+      "notes": "Formata resultado da análise"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b231a576ad994f7cb6d8ee0d763dfc36",
+              "leftValue": "={{ $json.documentos_para_ler?.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "43795f42-9be1-4651-bcf3-88a0f01f20db",
+      "name": "Tem Documentos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        656
+      ],
+      "notes": "Verifica se há documentos para ler"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "29921ee9-ba13-49fc-94f3-63a5b6842163",
+      "name": "Download Documento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        608,
+        640
+      ],
+      "notes": "Baixa arquivo de documento da URL"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "claude-sonnet-4-20250514",
+          "mode": "list"
+        },
+        "text": "Resuma este documento enviado por um lead de clínica odontológica. Foque em: 1. Tipo de documento 2. Informações clinicamente relevantes 3. Dados importantes para atendimento. Máximo 150 palavras. Seja objetivo.",
+        "documentUrls": "={{ $json.url }}",
+        "options": {
+          "maxTokens": 500
+        }
+      },
+      "id": "91e91459-01a2-4627-9809-1ac12a0d891d",
+      "name": "Resumir Documento",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        800,
+        640
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "d55jE3J0Dt8GSGKW",
+          "name": "Autorizacao Claude"
+        }
+      },
+      "notes": "Resume conteúdo do documento"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f4b852693334b6c85efbb29697926ae",
+              "name": "placeholder",
+              "value": "={{ $('Prep Transcript').first().json.documentos_para_ler.find(d => d.url === $('Download Documento').first().json.url)?.id || '[PDF]' }}",
+              "type": "string"
+            },
+            {
+              "id": "ecbb9c2c7d664e309fea049c0a532823",
+              "name": "resumo",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "e810ce0da9ad4dc0a9914c3822287ec0",
+              "name": "role",
+              "value": "={{ $('Prep Transcript').first().json.documentos_para_ler.find(d => d.url === $('Download Documento').first().json.url)?.role || 'LEAD' }}",
+              "type": "string"
+            },
+            {
+              "id": "c32b218fb9024280b191db1ef9514390",
+              "name": "tipo",
+              "value": "={{ $json.content[0].type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "03afd1a3-0183-48d7-8a7e-16facb7406ec",
+      "name": "Formatar Resultado Documento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        640
+      ],
+      "notes": "Formata resultado do resumo"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "4030134a-c954-49ae-91de-7becfbcf2e55",
+      "name": "Merge Mídia",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1568,
+        784
+      ],
+      "notes": "Combina resultados dos 3 branches (áudios, imagens, documentos)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enriquecer Transcrição com Mídia Processada\nconst prepData = $('Prep Transcript').first().json;\nlet transcricao = prepData.transcricao;\n\n// Coletar mídias processadas de todos os itens do Merge\nconst allItems = $input.all();\nconst audios = [];\nconst imagens = [];\nconst documentos = [];\n\nfor (const item of allItems) {\n  const data = item.json;\n  \n  // Identificar tipo de mídia\n  if (data.tipo === 'audio' && data.placeholder) {\n    audios.push(data);\n  } else if (data.tipo === 'imagem' && data.placeholder) {\n    imagens.push(data);\n  } else if ((data.tipo === 'documento' || data.tipo === 'text' || data.tipo === 'pdf') && data.placeholder) {\n    documentos.push(data);\n  }\n}\n\n// Substituir placeholders de áudios\nif (audios.length > 0) {\n  for (const audio of audios) {\n    const replacement = `${audio.placeholder}\\n> 🎤 **Áudio transcrito:** \"${audio.transcricao || 'Erro na transcrição'}\"`;\n    transcricao = transcricao.replace(audio.placeholder, replacement);\n  }\n}\n\n// Substituir placeholders de imagens\nif (imagens.length > 0) {\n  for (const img of imagens) {\n    const replacement = `${img.placeholder}\\n> 📸 **Imagem analisada:** ${img.descricao || 'Erro na análise'}`;\n    transcricao = transcricao.replace(img.placeholder, replacement);\n  }\n}\n\n// Substituir placeholders de documentos\nif (documentos.length > 0) {\n  for (const doc of documentos) {\n    const tipoDoc = doc.tipo === 'pdf' ? 'PDF' : doc.tipo || 'documento';\n    const replacement = `${doc.placeholder}\\n> 📋 **Documento (${tipoDoc}):** ${doc.resumo || doc.texto_extraido || 'Erro no resumo'}`;\n    transcricao = transcricao.replace(doc.placeholder, replacement);\n  }\n}\n\n// Contar mídias processadas\nconst totalMidias = audios.length + imagens.length + documentos.length;\n\n// Atualizar resumo\nconst resumo = {\n  ...prepData.resumo,\n  midias: {\n    audios: audios.length,\n    imagens: imagens.length,\n    documentos: documentos.length,\n    total: totalMidias\n  }\n};\n\nreturn [{\n  json: {\n    transcricao: transcricao,\n    lead_nome: prepData.lead_nome,\n    resumo: resumo,\n    eventos: prepData.eventos,\n    midias_processadas: {\n      audios: audios,\n      imagens: imagens,\n      documentos: documentos\n    },\n    // Manter arrays originais para referência\n    audios_para_transcrever: prepData.audios_para_transcrever || [],\n    imagens_para_descrever: prepData.imagens_para_descrever || [],\n    documentos_para_ler: prepData.documentos_para_ler || []\n  }\n}];"
+      },
+      "id": "6304f1f4-182a-40e9-889e-6a28a4b41323",
+      "name": "Enriquecer Transcrição",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        800
+      ],
+      "notes": "Substitui placeholders na transcrição com conteúdo processado"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        960
+      ],
+      "id": "5b517f0d-5dcb-4555-8c34-abd0b77a009b",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "CpuN9j3ruiXOEGy4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ghl-conversa-export",
+        "options": {}
+      },
+      "id": "4ce13125-34fa-4405-ae86-ca246db53430",
+      "name": "Webhook GHL1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2368,
+        1088
+      ],
+      "webhookId": "ghl-conversa-export",
+      "notes": "Recebe webhook do GoHighLevel quando conversa muda de etapa"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "60f81c66-a54d-4b30-b800-05004787e674",
+              "leftValue": "={{ $json }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3824,
+        1472
+      ],
+      "id": "bff17f57-f6da-4957-8890-83079e298fa1",
+      "name": "Este Usuário existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o array de documentos do item anterior\nconst documentos = $input.first().json.documentos_para_ler || [];\n\n// Retorna cada documento como um item separado\nreturn documentos.map(documento => ({\n  json: {\n    id: documento.id,\n    url: documento.url,\n    role: documento.role,\n    tipo: documento.tipo || 'pdf'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        640
+      ],
+      "id": "370ccfc3-7776-425e-a37e-ecf366ed6321",
+      "name": "Preparar Documentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o array de imagens do item anterior\nconst imagens = $input.first().json.imagens_para_descrever || [];\n\n// Retorna cada imagem como um item separado\nreturn imagens.map(imagem => ({\n  json: {\n    id: imagem.id,\n    url: imagem.url,\n    role: imagem.role\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        800
+      ],
+      "id": "7c739d3f-9939-4c5b-808f-deebec6e5cf1",
+      "name": "Preparar Imagens"
+    },
+    {
+      "parameters": {
+        "jsCode": "const audios = $input.first().json.audios_para_transcrever || [];\n\nreturn audios.map(audio => ({\n  json: {\n    id: audio.id,\n    url: audio.url,\n    role: audio.role\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        960
+      ],
+      "id": "182376a6-be31-4613-838c-29ae3cf82acc",
+      "name": "Preparar Áudios"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega todos os itens de transcrição\nconst transcricoes = $input.all();\n// Pega todos os itens do Download Áudio (na mesma ordem)\nconst audiosDownload = $('Download Áudio').all();\n\n// Combina cada transcrição com seu áudio correspondente\nconst resultados = transcricoes.map((item, index) => {\n  const transcricao = item.json.text;\n  const audioData = audiosDownload[index]?.json || {};\n  \n  return {\n    json: {\n      placeholder: audioData.id || '[AUDIO]',\n      transcricao: transcricao,\n      role: audioData.role || 'LEAD',\n      tipo: 'audio'\n    }\n  };\n});\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        960
+      ],
+      "id": "2efec716-308a-4583-a7b6-6035f4f28ab6",
+      "name": "Combinar Transcrição com Metadados"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-sonnet-4-20250514",
+          "mode": "list",
+          "cachedResultName": "claude-sonnet-4-20250514"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=<user>\nAnalise esta conversa de pré-venda (SDR):\n\n<metadados>\n- Pipeline: {{$json.pipeline_name}}\n- Etapa Final: {{$json.pipeline_stage}}\n- Tratamento de Interesse: {{$json.tratamento_interesse}}\n- SDR: {{$json.sdr_nome}}\n- Lead: {{$json.lead_nome}}\n- Resultado Final: {{#if $json.agendou}}✅ AGENDOU{{else}}❌ NÃO agendou{{/if}}{{#if $json.compareceu}} → ✅ COMPARECEU{{/if}}{{#if $json.fechou_venda}} → ✅ FECHOU{{/if}}\n</metadados>\n\n<metricas_conversa>\n- Total de mensagens: {{$json.resumo.total}}\n- Mensagens do LEAD: {{$json.resumo.lead}}\n- Mensagens do SDR: {{$json.resumo.sdr}}\n- Mensagens de WORKFLOW: {{$json.resumo.workflow}}\n- Período: {{$json.resumo.periodo.inicio}} até {{$json.resumo.periodo.fim}}\n- Mídias enviadas: {{$json.resumo.midias.total}} (áudios: {{$json.resumo.midias.audios}}, docs: {{$json.resumo.midias.documentos}}, imagens: {{$json.resumo.midias.imagens}})\n</metricas_conversa>\n\n<tags_lead>\n{{$json.tags}}\n</tags_lead>\n\n<transcricao>\n{{$json.transcricao}}\n</transcricao>\n\nAnalise a conversa considerando:\n1. Se o SDR aplicou SPIN Selling (Situação, Problema, Implicação, Necessidade)\n2. Se apresentou benefícios específicos do tratamento de interesse\n3. A proporção de mensagens humanas vs automações (workflows)\n4. Se reagiu adequadamente às mídias enviadas pelo lead\n5. Técnicas de vendas aplicadas vs ausentes\n6. Se fez confirmação de presença (quando aplicável)\n7. O resultado final da jornada (agendou? compareceu? fechou?)\n\nRetorne APENAS o JSON de análise, sem texto adicional.\n</user>"
+            }
+          ]
+        },
+        "options": {
+          "system": "<system>\nVocê é um analista sênior de qualidade de pré-vendas da Beauty Smile, clínica odontológica premium especializada em tecnologia Fotona.\nSua função é avaliar o desempenho de SDRs (pré-vendedores) cujo objetivo é QUALIFICAR leads, AGENDAR consultas e garantir o COMPARECIMENTO. O SDR NÃO fecha vendas - apenas agenda e confirma.\n\n<contexto_beauty_smile>\nClínica premium para público de alta renda que valoriza:\n- Atendimento humanizado e sem pressão\n- Tecnologia de ponta (laser Fotona, scanners 3D)\n- Tratamentos sem dor e minimamente invasivos\n\nTratamentos mais procurados:\n- Limpeza a Laser (Fotona): Sem dor, elimina bactérias\n- Clareamento a Laser: Resultado em sessão única\n- Alinhadores Invisíveis: Ortodontia estética, 50% mais rápido com laser\n- Tratamento Ronco/Apneia (NightLase/Beauty Sleep): Sem CPAP\n- Sensibilidade Dentária: Tratamento para hipersensibilidade\n- Endodontia: Tratamento de canal\n- DTM/Dor Orofacial: Fotobiomodulação\n\nConsulta de avaliação: R$450 (não é gratuita)\n</contexto_beauty_smile>\n\n<pipelines_sdr>\nO SDR atua nos seguintes pipelines:\n\n1. **Indicação**: Leads por indicação de pacientes/parceiros\n   - Fluxo: Entrada → 1 Contato → Conversa → Follow Up → Agendado\n\n2. **Social Selling**: Leads de comentários, DMs, interações sociais\n   - Fluxo: Comentário → Mensagem → 1 Contato → Conversa → SQL → Agendado\n\n3. **Pré-vendas**: Leads de campanhas pagas (Google, Meta)\n   - Fluxo: Entrada/Reentrada → 1 Contato → Conversa → SQL → Agendado\n\n4. **Agendamento**: Gestão pós-agendamento até comparecimento\n   - Fluxo: Agendado → Confirmado → Compareceu (ou Falta → Reagendar)\n\n5. **Sales Farm**: Reativação de leads desqualificados/perdidos\n   - Fluxo: Follow Up → Incubação → Fluxo de Mensagens\n\nEtapas finais para análise:\n- Agendado: Lead qualificou e agendou\n- Compareceu: Lead veio na consulta (migra para Vendas)\n- Desqualificado: Lead fora de perfil no momento (pode ser resgatado)\n- Totalmente Desqualificado: Lead sem fit algum\n- Falta: Lead não compareceu à consulta\n- Em Risco: Lead não confirmou presença\n- Cancelado: Lead pediu para não receber mais contatos\n</pipelines_sdr>\n\n<objetivo_sdr>\nO SDR de sucesso deve:\n1. Responder rápido (< 5 min ideal, < 24h aceitável)\n2. Criar rapport e conexão inicial\n3. Aplicar SPIN Selling para descobrir a situação, problemas, implicações e necessidades\n4. Descobrir a DOR/DESEJO real do lead (não só o tratamento)\n5. Qualificar: tem urgência? tem condição? é decisor? está em SP?\n6. Apresentar BENEFÍCIOS específicos do tratamento de interesse\n7. Gerar interesse na consulta de avaliação (valor R$450)\n8. AGENDAR a consulta com leads qualificados (objetivo principal!)\n9. CONFIRMAR presença antes da consulta\n10. REAGENDAR leads que faltaram\n\nMétricas de sucesso do SDR:\n- Agendar leads que COMPARECEM (não adianta lotar agenda com no-shows)\n- Agendar leads que CONVERTEM (não adianta agendar desqualificados)\n- Taxa de confirmação alta\n- Recuperar leads que faltaram\n\nO SDR NÃO deve:\n- Passar valores detalhados dos tratamentos (só ranges se necessário)\n- Fechar venda ou negociar pagamento\n- Prometer resultados específicos\n- Pressionar excessivamente\n- Ignorar mídias enviadas pelo lead (áudios, exames, fotos)\n- Usar apenas mensagens automáticas sem personalização\n</objetivo_sdr>\n\n<spin_selling>\nO SDR deve aplicar a metodologia SPIN:\n\nS - SITUAÇÃO: Entender contexto atual\n  \"Me conta, você já fez algum tratamento dental antes?\"\n  \"Como está sua rotina de cuidados hoje?\"\n\nP - PROBLEMA: Identificar dores e incômodos\n  \"O que te incomoda mais no seu sorriso hoje?\"\n  \"Há quanto tempo isso te incomoda?\"\n\nI - IMPLICAÇÃO: Aprofundar impacto do problema\n  \"Como isso afeta seu dia a dia?\"\n  \"Isso te impede de fazer algo que gostaria?\"\n\nN - NECESSIDADE DE SOLUÇÃO: Fazer o lead verbalizar o desejo\n  \"Se pudesse resolver isso, como seria?\"\n  \"O que mudaria pra você ter o sorriso que deseja?\"\n</spin_selling>\n\n<tecnicas_esperadas>\n- Rapport: Saudação calorosa, usar nome, demonstrar interesse genuíno\n- SPIN Selling: Situação → Problema → Implicação → Necessidade\n- Descoberta: \"O que te motivou a buscar isso agora?\", \"Como isso afeta seu dia a dia?\"\n- Qualificação: Entender urgência, condição financeira (sutil), se é decisor, localização\n- Apresentação de Benefícios: Mencionar benefícios específicos do tratamento (ver seção beneficios_tratamentos)\n- Ancoragem de Valor: Posicionar consulta como investimento, não custo\n- Prova Social: Mencionar casos de sucesso, volume de pacientes atendidos\n- Urgência Saudável: \"Temos poucas vagas essa semana\", sem pressão exagerada\n- CTA Claro: Oferecer horários específicos, não perguntas abertas\n- Confirmação: Confirmar presença antes da consulta agendada\n- Recuperação: Tentar reagendar leads que faltaram\n- Reação a Mídias: Quando lead envia áudio/foto/exame, reconhecer e responder ao conteúdo\n</tecnicas_esperadas>\n\n<beneficios_tratamentos>\nBenefícios que o SDR DEVE mencionar para cada tratamento.\nO SDR NÃO precisa usar frases exatas - avalie se transmitiu os CONCEITOS e ARGUMENTOS principais.\n\n## BENEFÍCIOS GERAIS BEAUTY SMILE (aplicar a todos)\n\n| Benefício | Argumento |\n|-----------|-----------|\n| Tratamento Sem Dor | Laser Fotona sem broca, sem barulho. Pacientes com fobia dormem na cadeira. |\n| Salvamos Dentes | Prioridade em salvar antes de extrair. |\n| Recuperação Imediata | Volta às atividades no mesmo dia, sem inchaço, sem sangramento. |\n| Sensibilidade Eliminada | Pacientes que não mordiam sorvete há décadas conseguem na primeira sessão. |\n| Atendimento Humanizado | Cada caso é único, plano construído junto com transparência. |\n\n## ALINHADOR ORTODÔNTICO\n\n| Benefício | Argumento |\n|-----------|-----------|\n| Tratamento Invisível | Ninguém percebe. Continua vida normal - reuniões, eventos. |\n| 50% Mais Rápido | Laser Fotona acelera. 18-24 meses vira 9-12 meses. |\n| Simulação 3D | Vê exatamente como sorriso vai ficar antes de decidir. |\n| Sem Dor | Laser tem efeito analgésico. Remoção final com laser, não broca. |\n\n## BEAUTY SLEEP (RONCO E APNEIA)\n\n| Benefício | Argumento |\n|-----------|-----------|\n| Reconquista do Quarto | Trata causa do ronco. Maioria volta a dormir junto nas primeiras semanas. |\n| Energia de Verdade | 70% sentem diferença na primeira semana. |\n| Sem CPAP/Cirurgia | Fortalece tecidos com laser. 70% desistem do CPAP por desconforto. |\n| Proteção Cardíaca | Apneia multiplica risco de infarto 3x e AVC 4x. Tratamento reduz índice em até 70%. |\n| Liberdade Social | Aceitar viagens sem medo de roncar. |\n\n## LIMPEZA A LASER\n\n| Benefício | Argumento |\n|-----------|-----------|\n| Fim do Ciclo de Tártaro | Laser mata 98-100% das bactérias. Raspagem remove pedra mas bactérias voltam em 72h. |\n| Sem Sofrimento | Pacientes traumatizados dormem na cadeira. Sem raspagem, barulho, sangramento. |\n| Para a Retração | Laser limpa sem raspar. Gengiva pode se recuperar. |\n| Hálito Fresco | Elimina bactérias na fonte. Melhora em 48h. |\n| Investimento Único | Trata causa uma vez, depois só manutenção anual. |\n\n## CLAREAMENTO DENTAL\n\n| Benefício | Argumento |\n|-----------|-----------|\n| Sem Dor/Sensibilidade | Laser Fotona atua só na água do gel, não aquece dente. Teste do sorvete após sessão. |\n| Liberdade Alimentar | Recupera capacidade de comer gelado no mesmo dia. |\n| Metade do Tempo | 20-30 minutos. Protocolo completo em uma semana. |\n| Resultado Natural | Clareamento, não branqueamento. Melhor versão natural do dente. |\n| Preserva Esmalte | Energia fica contida no gel. Esmalte intacto. |\n</beneficios_tratamentos>\n\n<avaliacao_midias>\nQuando o lead envia mídia na conversa (indicado por marcadores como [AUDIO_1], [PDF_1], [IMAGEM_1] com resumos/transcrições):\n\n- ÁUDIO do lead: SDR DEVE demonstrar que ouviu/leu o conteúdo e responder aos pontos específicos\n- DOCUMENTO/EXAME: SDR DEVE reconhecer o envio (\"Vi seu exame...\")\n- IMAGEM: SDR DEVE comentar que recebeu\n\nREGRA: Lead enviou mídia + SDR ignorou = RED FLAG grave\n\nNOTA: A maioria das conversas NÃO terá mídias. Se não há marcadores, midia_reagida_corretamente = null.\n</avaliacao_midias>\n\n<deteccao_automacao>\nMensagens marcadas como [WORKFLOW] são automações do sistema.\n\nImpacto na avaliação:\n- 100% mensagens de workflow sem resposta humana → Score máximo 2.0\n- Workflow que ignora resposta/mídia do lead → RED FLAG\n- Mix de automação + atendimento humanizado → Avaliar proporção e qualidade\n- Automação bem usada (confirmação, lembrete) → Positivo se complementa atendimento humano\n</deteccao_automacao>\n\n<proporcao_mensagens>\nAvaliar separadamente:\n- Mensagens HUMANAS do SDR vs mensagens do LEAD\n- Mensagens de WORKFLOW (automação)\n\nProporção saudável: Lead engajado responde, SDR interage de forma personalizada\nProblemático: Muitas automações, poucas respostas humanas, lead ignorado\n</proporcao_mensagens>\n\n<objecoes_comuns_sdr>\n- \"Quanto custa o tratamento?\" → Bom: \"Depende da avaliação, mas posso te dar um range. O mais importante é você conhecer a clínica e ver se faz sentido.\" Ruim: Passar tabela de preços\n- \"A consulta é paga?\" → Bom: \"Sim, a avaliação custa R$450 e é super completa - você sai com diagnóstico, plano de tratamento e todas as opções. É um investimento que vale muito a pena.\" Ruim: \"Infelizmente sim\"\n- \"Vou pensar\" → Bom: \"Claro! O que te faria decidir?\" / Agendar follow-up. Ruim: \"Ok, qualquer coisa me chama\"\n- \"Funciona mesmo?\" → Bom: Prova social, casos similares. Ruim: Promessas genéricas\n- \"Não tenho tempo\" → Bom: \"A avaliação dura só 30min, temos horários flexíveis.\" Ruim: Desistir\n- \"Estou só pesquisando\" → Bom: \"Perfeito! A avaliação é justamente pra você ter todas as informações e poder comparar com propriedade.\" Ruim: Diminuir contato\n</objecoes_comuns_sdr>\n\n<criterios_avaliacao>\nA avaliação considera a JORNADA COMPLETA do lead:\n\nScore 9-10: SPIN aplicado, rapport forte, benefícios apresentados, objeções tratadas, AGENDOU + COMPARECEU + (idealmente) FECHOU. RARO - apenas casos genuinamente excepcionais.\nScore 7-8: Bom atendimento, agendou, compareceu, mas perdeu oportunidades de qualificação ou não fechou\nScore 5-6: Atendimento ok, agendou mas não compareceu OU não agendou mas manteve lead aquecido com boa qualificação\nScore 3-4: Atendimento fraco, perdeu lead por erros evitáveis, muita automação sem personalização\nScore 1-2: Atendimento ruim, cliente ignorado, só automação, ou urgência negligenciada\nScore 0: Sem atendimento real (apenas automações sem qualquer interação) ou transcrição vazia\n\nFatores de ajuste:\n- Lead que já chegou decidido e agendou rápido: avaliar se SDR ainda assim qualificou bem\n- Lead difícil que não agendou mas foi bem trabalhado: não penalizar excessivamente\n- Lead que compareceu e fechou: indica boa qualificação prévia (bônus)\n- Lead que faltou: verificar se SDR fez confirmação adequada\n</criterios_avaliacao>\n\n<edge_cases>\nQuando encontrar situações ambíguas, siga estas regras:\n\n1. **Transcrição muito curta (< 5 mensagens total):**\n   - Se lead enviou ≥2 msgs e SDR respondeu humanamente → Avaliar normalmente\n   - Se apenas workflows sem resposta humana → score_qualidade máximo 2.0\n   - Se lead enviou 1 msg e SDR não respondeu → score_qualidade 0\n\n2. **Campos booleanos de jornada (agendou/compareceu/fechou):**\n   - null e false são equivalentes como NEGATIVA\n   - Use os valores conforme informado nos metadados da conversa\n   - Se metadados dizem \"✅ AGENDOU → ✅ COMPARECEU\" → agendou=true, compareceu=true\n   - Se metadados dizem \"❌ NÃO agendou\" → agendou=false, compareceu=null, fechou=null\n\n3. **Mídias na conversa:**\n   - A maioria das conversas NÃO terá mídias\n   - Se não há marcadores [AUDIO], [PDF], [IMAGEM] → midia_reagida_corretamente=null\n   - Se há marcador e SDR ignorou → midia_reagida_corretamente=false, adicionar red_flag\n   - Se há marcador e SDR reagiu → midia_reagida_corretamente=true\n\n4. **Conversa interrompida/incompleta:**\n   - Avaliar apenas o que está documentado na transcrição\n   - Não assumir continuação fora do registro\n   - Não inferir intenções não explícitas\n\n5. **Lead já decidido:**\n   - Se lead chegou querendo agendar direto, ainda avaliar se SDR qualificou minimamente\n   - Não dar score 10 automático só porque agendou rápido\n   - Verificar se SDR ao menos identificou tratamento e confirmou dados básicos\n\n6. **Objeções não explícitas:**\n   - Só registrar em objecoes_detectadas se o lead verbalizou claramente\n   - \"Vou pensar\" = objeção\n   - \"Ok, vou ver minha agenda\" = NÃO é objeção (é interesse)\n</edge_cases>\n\n<formato_output>\nRetorne EXCLUSIVAMENTE um objeto JSON válido. Nenhum texto antes ou depois do JSON.\n\n**Regras de tipos obrigatórias:**\n- Números: usar number JavaScript (8.5 não \"8.5\")\n- Booleanos: usar true/false literal (não \"true\"/\"false\" strings)\n- Arrays vazios: usar [] (não null)\n- Strings: sempre entre aspas duplas\n- null: apenas para campos onde faz sentido (ver edge_cases)\n\n**Estrutura esperada:**\n{\n  \"score_qualidade\": 8.5,\n  \"sentimento_cliente\": \"positivo\",\n  \"nivel_engajamento\": 4,\n  \"objecoes_detectadas\": [],\n  \"agendou\": true,\n  \"compareceu\": null,\n  ...\n}\n\n**Se transcrição vazia/ilegível, retorne:**\n{\n  \"score_qualidade\": 0,\n  \"sentimento_cliente\": \"neutro\",\n  \"nivel_engajamento\": 1,\n  \"qualidade_descoberta\": 1,\n  \"qualidade_qualificacao\": 1,\n  \"aplicou_spin\": false,\n  \"etapas_spin_usadas\": [],\n  \"apresentou_beneficios\": false,\n  \"tipo_atendimento\": \"automatizado\",\n  \"proporcao_mensagens\": \"0 lead / 0 SDR / 0 workflow\",\n  \"mensagens_humanas_sdr\": 0,\n  \"mensagens_workflow\": 0,\n  \"duracao_conversa_dias\": 0,\n  \"tratamento_detectado\": \"Não identificado\",\n  \"urgencia_cliente\": \"baixa\",\n  \"lead_qualificado\": false,\n  \"lead_engajou\": false,\n  \"agendou\": false,\n  \"compareceu\": null,\n  \"fechou\": null,\n  \"fez_confirmacao\": null,\n  \"objecoes_detectadas\": [],\n  \"objecao_principal\": null,\n  \"objecoes_tratadas\": false,\n  \"tecnicas_usadas\": [],\n  \"tecnicas_ausentes\": [],\n  \"midia_reagida_corretamente\": null,\n  \"passou_valores\": false,\n  \"tempo_resposta\": \"muito_lento\",\n  \"pontos_fortes\": [],\n  \"pontos_melhoria\": [\"Sem transcrição para avaliar\"],\n  \"red_flags\": [\"Transcrição vazia ou ilegível\"],\n  \"feedback_sdr\": \"Não foi possível avaliar - transcrição vazia ou ilegível.\",\n  \"resumo_conversa\": \"Transcrição vazia ou ilegível.\",\n  \"probabilidade_recuperacao\": 0,\n  \"proximo_passo_sugerido\": \"Verificar se há registro da conversa em outro sistema\"\n}\n</formato_output>\n\n<instrucoes_finais>\nREGRAS CRÍTICAS:\n\n1. Analise a conversa completa antes de pontuar - leia tudo primeiro\n2. Objetivo do SDR: AGENDAR leads que COMPARECEM e CONVERTEM\n3. Seja HONESTO nos scores - não inflacione atendimentos medianos\n4. Scores 9-10 são RAROS - reserve para casos genuinamente excepcionais\n5. Feedback deve ser ESPECÍFICO e ACIONÁVEL, citando exemplos da conversa\n6. NÃO invente informações não presentes na transcrição\n7. NÃO assuma intenções ou continuações não documentadas\n8. Se 100% mensagens de workflow sem humano → score máximo 2.0\n9. Verificar se SDR apresentou benefícios específicos do tratamento\n10. Verificar se aplicou SPIN Selling (pelo menos Situação e Problema)\n\nVALIDAÇÃO FINAL:\n- JSON deve ser válido e parseable\n- Todos os 30 campos devem estar presentes\n- Tipos devem estar corretos (numbers como numbers, não strings)\n- Arrays podem estar vazios [] mas não null\n- Retorne APENAS o JSON, sem markdown, sem explicações\n</instrucoes_finais>\n</system>",
+          "maxTokens": 2000,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        1072
+      ],
+      "id": "09c6091f-fcc0-4a17-876f-6457913b527f",
+      "name": "Analisar Conversa",
+      "credentials": {
+        "anthropicApi": {
+          "id": "d55jE3J0Dt8GSGKW",
+          "name": "Autorizacao Claude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "email": "={{ $('Normalizar Payload GHL').item.json.body.email }}",
+        "phone": "={{ $('Normalizar Payload GHL').item.json.body.phone }}",
+        "additionalFields": {
+          "notes": "=📊 ANÁLISE DE QUALIDADE DA CONVERSA  Score: {{ $json.score_qualidade }}/10 Sentimento: {{ $json.sentimento_cliente }} Engajamento: {{ $json.nivel_engajamento }}  Pontos Fortes: {{ $json.pontos_fortes?.join(', ') || 'Nenhum' }}  Pontos de Melhoria: {{ $json.pontos_melhoria?.join(', ') || 'Nenhum' }}  Red Flags: {{ $json.red_flags?.join(', ') || 'Nenhum' }}  Feedback SDR: {{ $json.feedback_sdr }}"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.highLevel",
+      "typeVersion": 2,
+      "position": [
+        4048,
+        800
+      ],
+      "id": "c5edd5e4-0f87-4687-88b6-50e7b05d3958",
+      "name": "Criar ou Atualizar dados do Contato",
+      "credentials": {
+        "highLevelOAuth2Api": {
+          "id": "Gr7iyTFBOBezB54b",
+          "name": "API GoHighLevel"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "mode": "url",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        4048,
+        992
+      ],
+      "id": "d9bd4d12-41f4-40bf-9039-56f5f81796d0",
+      "name": "Atualizar Dados",
+      "credentials": {
+        "notionApi": {
+          "id": "HoLfdSJzusfh4PmA",
+          "name": "Notion account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        4048,
+        1184
+      ],
+      "id": "1c03d2bc-66bd-4b6c-a519-0ac7add62478",
+      "name": "Criar Dados",
+      "credentials": {
+        "notionApi": {
+          "id": "HoLfdSJzusfh4PmA",
+          "name": "Notion account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "https://www.notion.so/2ee6049b8baf80a89382f81fd521ad5a?v=2ee6049b8baf81bc9d1b000cbb530340",
+          "mode": "url"
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3648,
+        1088
+      ],
+      "id": "eaf19a61-0f36-4c2e-855d-fca7880126f3",
+      "name": "Procurar Contato",
+      "credentials": {
+        "notionApi": {
+          "id": "HoLfdSJzusfh4PmA",
+          "name": "Notion account 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "conversas_ghl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "conversation_id",
+              "keyValue": "={{ $('Next Page Conversas').first().json.conversation_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3648,
+        1472
+      ],
+      "id": "6f6a03e0-f9a6-49e5-ba51-8b7e1fdcc8e0",
+      "name": "Procurar  Contato",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "IAZIxeCGlyZ1M1Uw",
+          "name": "Autorizacao SupaBase Beauty Smile HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "conversas_ghl",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "conversation_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Procurar  Contato').item.json.conversation_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "score_qualidade",
+              "fieldValue": "={{ $json.score_qualidade }}"
+            },
+            {
+              "fieldId": "nivel_engajamento",
+              "fieldValue": "={{ $json.nivel_engajamento }}"
+            },
+            {
+              "fieldId": "qualidade_descoberta",
+              "fieldValue": "={{ $json.qualidade_descoberta }}"
+            },
+            {
+              "fieldId": "qualidade_qualificacao",
+              "fieldValue": "={{ $json.qualidade_qualificacao }}"
+            },
+            {
+              "fieldId": "tratamento_detectado",
+              "fieldValue": "={{ $json.tratamento_detectado }}"
+            },
+            {
+              "fieldId": "urgencia_cliente",
+              "fieldValue": "={{ $json.urgencia_cliente }}"
+            },
+            {
+              "fieldId": "lead_qualificado",
+              "fieldValue": "={{ $json.lead_qualificado }}"
+            },
+            {
+              "fieldId": "objecoes_detectadas",
+              "fieldValue": "={{ $json.objecoes_detectadas }}"
+            },
+            {
+              "fieldId": "objecao_principal",
+              "fieldValue": "={{ $json.objecao_principal }}"
+            },
+            {
+              "fieldId": "objecoes_tratadas",
+              "fieldValue": "={{ $json.objecoes_tratadas }}"
+            },
+            {
+              "fieldId": "tecnicas_usadas",
+              "fieldValue": "={{ $json.tecnicas_usadas }}"
+            },
+            {
+              "fieldId": "tecnicas_ausentes",
+              "fieldValue": "={{ $json.tecnicas_ausentes }}"
+            },
+            {
+              "fieldId": "pontos_fortes",
+              "fieldValue": "={{ $json.pontos_fortes }}"
+            },
+            {
+              "fieldId": "pontos_melhoria",
+              "fieldValue": "={{ $json.pontos_melhoria }}"
+            },
+            {
+              "fieldId": "red_flags",
+              "fieldValue": "={{ $json.red_flags }}"
+            },
+            {
+              "fieldId": "passou_valores",
+              "fieldValue": "={{ $json.passou_valores }}"
+            },
+            {
+              "fieldId": "tempo_resposta",
+              "fieldValue": "={{ $json.tempo_resposta }}"
+            },
+            {
+              "fieldId": "sentimento",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.sentimento_cliente }}"
+            },
+            {
+              "fieldId": "resumo_conversa",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.resumo_conversa }}"
+            },
+            {
+              "fieldId": "probabilidade_agendamento_futuro",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.probabilidade_agendamento_futuro }}"
+            },
+            {
+              "fieldId": "proximo_passo_sugerido",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.proximo_passo_sugerido }}"
+            },
+            {
+              "fieldId": "qualificacao_sugerida",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.qualificacao_sugerida }}"
+            },
+            {
+              "fieldId": "feedback_ia",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.feedback_sdr }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $('Next Page Conversas').first().json.conversation_id }}"
+            },
+            {
+              "fieldId": "transcricao_markdown",
+              "fieldValue": "={{ $('Enriquecer Transcrição').first().json.transcricao }}"
+            },
+            {
+              "fieldId": "transcricao_texto",
+              "fieldValue": "={{ $('Enriquecer Transcrição').first().json.transcricao }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $json.contact_id }}"
+            },
+            {
+              "fieldId": "contact_name",
+              "fieldValue": "={{ $json.contact_name }}"
+            },
+            {
+              "fieldId": "contact_email",
+              "fieldValue": "={{ $json.contact_email }}"
+            },
+            {
+              "fieldId": "contact_phone",
+              "fieldValue": "={{ $json.contact_phone }}"
+            },
+            {
+              "fieldId": "location_id",
+              "fieldValue": "={{ $json.location_id }}"
+            },
+            {
+              "fieldId": "pipeline_name",
+              "fieldValue": "={{ $json.pipeline_name }}"
+            },
+            {
+              "fieldId": "pipeline_stage",
+              "fieldValue": "={{ $json.pipeline_stage }}"
+            },
+            {
+              "fieldId": "pipeline_id",
+              "fieldValue": "={{ $json.pipeline_id }}"
+            },
+            {
+              "fieldId": "sdr_nome",
+              "fieldValue": "={{ $json.sdr_nome }}"
+            },
+            {
+              "fieldId": "agendou",
+              "fieldValue": "={{ $json.agendou }}"
+            },
+            {
+              "fieldId": "fechou_venda",
+              "fieldValue": "={{ $json.fechou_venda }}"
+            },
+            {
+              "fieldId": "tratamento_interesse",
+              "fieldValue": "={{ $json.tratamento_interesse }}"
+            },
+            {
+              "fieldId": "tags",
+              "fieldValue": "={{ $json.tags }}"
+            },
+            {
+              "fieldId": "embedding",
+              "fieldValue": "={{ $json.embedding }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        1344
+      ],
+      "id": "52c46f92-2dcd-4a83-8257-f85bf32b9239",
+      "name": "Atualizar  Dados",
+      "credentials": {
+        "supabaseApi": {
+          "id": "IAZIxeCGlyZ1M1Uw",
+          "name": "Autorizacao SupaBase Beauty Smile HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "conversas_ghl",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "score_qualidade",
+              "fieldValue": "=   {{ Number($('Extrair Embedding').first().json.score_qualidade) || 0 }}"
+            },
+            {
+              "fieldId": "nivel_engajamento",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.nivel_engajamento }}"
+            },
+            {
+              "fieldId": "qualidade_descoberta",
+              "fieldValue": "=   {{ ($('Extrair Embedding').first().json.qualidade_descoberta === 'inexistente' || $('Extrair Embedding').first().json.qualidade_descoberta === null || $('Extrair Embedding').first().json.qualidade_descoberta === undefined) ? 0 : Number($('Extrair Embedding').first().json.qualidade_descoberta) || 0 }}"
+            },
+            {
+              "fieldId": "qualidade_qualificacao",
+              "fieldValue": "=   {{ ($('Extrair Embedding').first().json.qualidade_qualificacao === 'inexistente' || $('Extrair Embedding').first().json.qualidade_qualificacao === null || $('Extrair Embedding').first().json.qualidade_qualificacao === undefined) ? 0 : Number($('Extrair Embedding').first().json.qualidade_qualificacao) || 0 }}"
+            },
+            {
+              "fieldId": "tratamento_detectado",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.tratamento_detectado }}"
+            },
+            {
+              "fieldId": "urgencia_cliente",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.urgencia_cliente }}"
+            },
+            {
+              "fieldId": "lead_qualificado",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.lead_qualificado }}"
+            },
+            {
+              "fieldId": "objecoes_detectadas",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.objecoes_detectadas }}"
+            },
+            {
+              "fieldId": "objecao_principal",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.objecao_principal }}"
+            },
+            {
+              "fieldId": "objecoes_tratadas",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.objecoes_tratadas }}"
+            },
+            {
+              "fieldId": "tecnicas_usadas",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.tecnicas_usadas }}"
+            },
+            {
+              "fieldId": "tecnicas_ausentes",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.tecnicas_ausentes }}"
+            },
+            {
+              "fieldId": "pontos_fortes",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.pontos_fortes }}"
+            },
+            {
+              "fieldId": "pontos_melhoria",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.pontos_melhoria }}"
+            },
+            {
+              "fieldId": "red_flags",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.red_flags }}"
+            },
+            {
+              "fieldId": "passou_valores",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.passou_valores }}"
+            },
+            {
+              "fieldId": "tempo_resposta",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.tempo_resposta }}"
+            },
+            {
+              "fieldId": "sentimento",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.sentimento_cliente }}"
+            },
+            {
+              "fieldId": "resumo_conversa",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.resumo_conversa }}"
+            },
+            {
+              "fieldId": "probabilidade_agendamento_futuro",
+              "fieldValue": "=   {{ String($('Extrair Embedding').first().json.probabilidade_agendamento_futuro || '0') }}"
+            },
+            {
+              "fieldId": "proximo_passo_sugerido",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.proximo_passo_sugerido }}"
+            },
+            {
+              "fieldId": "qualificacao_sugerida",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.qualificacao_sugerida }}"
+            },
+            {
+              "fieldId": "feedback_ia",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.feedback_sdr }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $('Next Page Conversas').first().json.conversation_id }}"
+            },
+            {
+              "fieldId": "transcricao_markdown",
+              "fieldValue": "={{ $('Enriquecer Transcrição').first().json.transcricao }}"
+            },
+            {
+              "fieldId": "transcricao_texto",
+              "fieldValue": "={{ $('Enriquecer Transcrição').first().json.transcricao }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('ACC').first().json.messages.messages[0].contactId }}"
+            },
+            {
+              "fieldId": "contact_name",
+              "fieldValue": "={{ $('Preparar Dados').first().json.contact_name }}"
+            },
+            {
+              "fieldId": "contact_email",
+              "fieldValue": "={{ $('Preparar Dados').first().json.contact_email }}"
+            },
+            {
+              "fieldId": "contact_phone",
+              "fieldValue": "={{ $('Preparar Dados').first().json.contact_phone }}"
+            },
+            {
+              "fieldId": "location_id",
+              "fieldValue": "={{ $('Preparar Dados').first().json.location_id }}"
+            },
+            {
+              "fieldId": "pipeline_name",
+              "fieldValue": "={{ $('Preparar Dados').first().json.pipeline_name }}"
+            },
+            {
+              "fieldId": "pipeline_stage",
+              "fieldValue": "={{ $('Preparar Dados').first().json.pipeline_stage }}"
+            },
+            {
+              "fieldId": "pipeline_id",
+              "fieldValue": "={{ $('Preparar Dados').first().json.pipeline_id }}"
+            },
+            {
+              "fieldId": "sdr_nome",
+              "fieldValue": "={{ $('Preparar Dados').first().json.sdr_nome }}"
+            },
+            {
+              "fieldId": "agendou",
+              "fieldValue": "={{ $('Calcular Status').first().json.agendou }}"
+            },
+            {
+              "fieldId": "fechou_venda",
+              "fieldValue": "={{ $('Calcular Status').first().json.fechou_venda }}"
+            },
+            {
+              "fieldId": "tratamento_interesse",
+              "fieldValue": "={{ $('Preparar Dados').first().json.tratamento_interesse }}"
+            },
+            {
+              "fieldId": "tags",
+              "fieldValue": "={{ $('Extrair Conversation ID').first().json.conversations?.[0]?.tags || $('Preparar Dados').first().json.tags || [] }}"
+            },
+            {
+              "fieldId": "embedding",
+              "fieldValue": "={{ $('Extrair Embedding').item.json.embedding }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        1536
+      ],
+      "id": "346131d5-291f-41dc-837d-90b049adf2af",
+      "name": "Criar  Dados",
+      "credentials": {
+        "supabaseApi": {
+          "id": "IAZIxeCGlyZ1M1Uw",
+          "name": "Autorizacao SupaBase Beauty Smile HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"status\": \"success\",\n  \"conversation_id\": $json.conversation_id,\n  \"score\": $json.score_qualidade,\n  \"supabase_saved\": true,\n  \"notion_created\": true,\n  \"ghl_note_added\": true\n} }}",
+        "options": {}
+      },
+      "id": "272ca233-115c-4c97-a44c-b087c651efae",
+      "name": "Retornar ao WebHook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4288,
+        1088
+      ],
+      "notes": "Retorna resposta de sucesso ao GHL"
+    }
+  ],
+  "pinData": {
+    "Webhook GHL1": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.srv881294.hstgr.cloud",
+            "user-agent": "axios/1.13.2",
+            "content-length": "4372",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "traceparent": "00-4881f3d3abc4ef4e9089f2e7ecb6f1af-dedf20093b5325db-00",
+            "x-forwarded-for": "34.59.37.253",
+            "x-forwarded-host": "n8n.srv881294.hstgr.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "ed621587b78f",
+            "x-real-ip": "34.59.37.253"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "Primeiro - UTM Match Type": "",
+            "Outras profissões": "",
+            "Last - Referrer": "",
+            "Valor Gasto": "",
+            "Last - UTM Campaign": "",
+            "Primeiro - UTM Source": "",
+            "Pontuação": "",
+            "UTM - Campaign": "",
+            "Primeiro - Ad ID": "",
+            "Primeiro - Google ClickId": "",
+            "Ultimo Canal de Contato": "WhatsApp API",
+            "Last - Google ClickId": "",
+            "Origem de Captação": "Sem Track",
+            "Primeiro - UTM Keyword": "",
+            "Transcrição SDR": "",
+            "UTM - Medium": "",
+            "META - sourceUrl": "",
+            "Data Ultimo Beauty Sleep": "",
+            "Última Interação": "",
+            "Campanha Beeviral": "",
+            "Potencial de Influencia": "",
+            "META - body": "",
+            "Queixa Principal": "",
+            "Nota Closer": "",
+            "Primeiro - UTM Medium": "",
+            "Lead ID": "LdSc3O39pYt4akjemRSA",
+            "Primeiro - FB ClickId": "",
+            " ": "",
+            "Profissao": "",
+            "NPS": "",
+            "Tratamentos de interesse": "",
+            "Primeiro - Ad Name": "",
+            "Primeiro - Campaign ID": "",
+            "Link da Ficha": "",
+            "Primeiro - Ad Group ID": "",
+            "Primeiro - Criativo": "",
+            "Last - UTM Source": "",
+            "Last - Campaign": "",
+            "Primeiro Tratamento de Interesse": "Sem Track",
+            "Primeiro - UTM Campaign": "",
+            "Primeiro - UTM Content": "",
+            "Avaliação Closer": "",
+            "Last - Ad Name": "",
+            "Tem Exames?": "",
+            "Perfil de Captação": "Sem Track",
+            "UTM - MediaUrl": "",
+            "Last - Session Source": "Direct traffic",
+            "Primeiro - Medium": "",
+            "Last - FB ClickId": "",
+            "Primeiro - UTM Term": "",
+            "Primeiro - Session Source": "",
+            "Last - Mensagem": "",
+            "Reentradas": "",
+            "Sexo": "",
+            "Last - Ctwa Clid": "",
+            "Codigo Extra": "",
+            "META - ctwaClid": "",
+            "Data do Ultimo Clareamento": "",
+            "META - title": "",
+            "Indicador": "",
+            "Last - Campanha Meta": "",
+            "Last - Google Client ID": "",
+            "Data da Ultima Limpeza": "",
+            "Passou Valores?": "",
+            "Anotações SDR": "",
+            "Primeiro - Ctwa Clid": "",
+            "Contagem de Faltas": "",
+            "META - sourceAds": "",
+            "Last - Medium": "",
+            "Fonte do Contato": "Whatsapp",
+            "Sessões Realizadas": "",
+            "META - conversionSource": "",
+            "META - sourceId": "",
+            "Last - UTM Match Type": "",
+            "Transcrição Closer": "",
+            "Primeiro -  Mensagem": "",
+            "Last - UTM Keyword": "",
+            "Last - UTM Term": "",
+            "Qualificação Closer": "",
+            "Real Objeção": "",
+            "Primeiro - Google Client Id": "",
+            "Last - Criativo": "",
+            "Last - Campaign ID": "",
+            "Qualificação SDR": "",
+            "Last - Ad ID": "",
+            "Potencial de indicacao": "",
+            "Cobrou Consulta": "",
+            "Tratamentos Realizados": "",
+            "lid": "",
+            "Inicio de Tratamento": "",
+            "Data da Ultima Polissonografia ": "",
+            "Anotações Closer": "",
+            "value": "",
+            "Outras Informações": "",
+            "Primeiro - Campaign": "",
+            "Analise SDR": "",
+            "META - sourceType": "",
+            "UTM - Source": "",
+            "Primeiro - Campanha Meta": "",
+            "Primeiro - URL": "",
+            "Bebida": "",
+            "META - entryPointConversionSource": "",
+            "Last - UTM Medium": "",
+            "Last - UTM Content": "",
+            "Codigo Beeviral": "",
+            "Primeiro - Referrer": "",
+            "Instagram": "",
+            "META - entryPointConversionApp": "",
+            "Last - Ad Group ID": "",
+            "Condições de Pagamento?": "",
+            "Last - URL": "https://services.leadconnectorhq.com/links/r/2/eyJhbGciOiJIUzI1NiJ9.eyJsaW5rX2lkIjoiSDRvS252Vk80WUtOZ1N5UzRQcHAiLCJjb250YWN0X2lkIjoiTGRTYzNPMzlwWXQ0YWtqZW1SU0EiLCJkb21haW4iOiJtc2dzbmRyLmNvbSIsIm1lc3NhZ2VUeXBlIjoiV2hhdHNBcHAiLCJtZXNzYWdlSWQiOiIzd014VDFuZkU2ckduRkN3TGdybyJ9.9thRMYBE00sAxB3kvkDgWpk5_tiAtOCs79mm2qUMiSY",
+            "Nota SDR": "",
+            "contact_id": "LdSc3O39pYt4akjemRSA",
+            "first_name": "Luiz",
+            "last_name": "Henrique",
+            "full_name": "Luiz Henrique",
+            "phone": "+5511963532171",
+            "tags": "sp,api whatsapp,fonte whatsapp,lead,origem sem track,perfil sem track,sem track,desqualificado,resgate desqualificado",
+            "city": "São Paulo",
+            "state": "SP",
+            "country": "BR",
+            "date_created": "2025-04-25T15:14:17.072Z",
+            "contact_source": "Whatsapp",
+            "full_address": "São Paulo SP ",
+            "contact_type": "lead",
+            "opportunity_name": "Luiz Henrique",
+            "status": "open",
+            "opportunity_source": "Sem Track",
+            "source": "Sem Track",
+            "pipleline_stage": "Retomada FUP",
+            "pipeline_id": "MkjSQuWek9SCVNChvlUn",
+            "id": "13HV6sTLZvrI9sVfcLLa",
+            "pipeline_name": "3. Pré-Vendas (Novo)",
+            "user": {
+              "firstName": "Maria",
+              "lastName": "Eduarda",
+              "email": "eduarda.lopes@beautysmile.com.br"
+            },
+            "owner": "Maria Eduarda",
+            "location": {
+              "name": "Beauty Smile",
+              "address": "Rua Desembargador Eliseu Guilherme, 53, Sala 112",
+              "city": "São Paulo",
+              "state": "SP",
+              "country": "BR",
+              "postalCode": "04004030",
+              "fullAddress": "Rua Desembargador Eliseu Guilherme, 53, Sala 112, São Paulo SP 04004030",
+              "id": "mZpTdAZQH6MbUWzvsLiS"
+            },
+            "workflow": {
+              "id": "d20cb86e-87d5-4183-8612-59660ce2bb48",
+              "name": "Copy - Salvar Conversas"
+            },
+            "triggerData": {},
+            "customData": {
+              "Nome_Pipeline": "3. Pré-Vendas (Novo)",
+              "Estagio_Pipeline": "Retomada FUP",
+              "Tratamentos": "",
+              "Valor": "0",
+              "aprovacao": "",
+              "criacao": "2021-01-20",
+              "agendamento": "",
+              "comparecimento": ""
+            }
+          },
+          "webhookUrl": "https://n8n.srv881294.hstgr.cloud/webhook-test/ghl-conversa-export",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Preparar Dados": {
+      "main": [
+        [
+          {
+            "node": "Calcular Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Conversation ID": {
+      "main": [
+        [
+          {
+            "node": "Extrair Conversation ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Conversation ID": {
+      "main": [
+        [
+          {
+            "node": "Buscar Msg 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Transcrição": {
+      "main": [
+        [
+          {
+            "node": "truncar script",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback (Sem Transcrição)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback (Sem Transcrição)": {
+      "main": [
+        [
+          {
+            "node": "Merge Análise + Fallback",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Análise + Fallback": {
+      "main": [
+        [
+          {
+            "node": "Preparar Embedding da Análise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Embedding (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Extrair Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página Existe?": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Payload GHL": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Msg 1": {
+      "main": [
+        [
+          {
+            "node": "ACC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ACC": {
+      "main": [
+        [
+          {
+            "node": "Next Page Conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Page Conversas": {
+      "main": [
+        [
+          {
+            "node": "Prep Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Transcript": {
+      "main": [
+        [
+          {
+            "node": "Tem Mídia?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "truncar script": {
+      "main": [
+        [
+          {
+            "node": "Analisar Conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Embedding da Análise": {
+      "main": [
+        [
+          {
+            "node": "Gerar Embedding (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Embedding": {
+      "main": [
+        [
+          {
+            "node": "Procurar  Contato",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Procurar Contato",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Criar ou Atualizar dados do Contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Status": {
+      "main": [
+        [
+          {
+            "node": "Buscar Conversation ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Mídia?": {
+      "main": [
+        [
+          {
+            "node": "Tem Áudios?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tem Imagens?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tem Documentos?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Verificar Transcrição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem Áudios?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Áudios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Formatar Resultado Áudio": {
+      "main": [
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Tem Imagens?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Imagens",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Download Imagem": {
+      "main": [
+        [
+          {
+            "node": "Analisar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar Imagem": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resultado Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resultado Imagem": {
+      "main": [
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Tem Documentos?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Documentos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Documento": {
+      "main": [
+        [
+          {
+            "node": "Resumir Documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumir Documento": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resultado Documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resultado Documento": {
+      "main": [
+        [
+          {
+            "node": "Merge Mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Mídia": {
+      "main": [
+        [
+          {
+            "node": "Enriquecer Transcrição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enriquecer Transcrição": {
+      "main": [
+        [
+          {
+            "node": "Verificar Transcrição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Áudio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook GHL1": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Payload GHL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Combinar Transcrição com Metadados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Este Usuário existe?": {
+      "main": [
+        [
+          {
+            "node": "Atualizar  Dados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar  Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Documentos": {
+      "main": [
+        [
+          {
+            "node": "Download Documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Imagens": {
+      "main": [
+        [
+          {
+            "node": "Download Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Áudios": {
+      "main": [
+        [
+          {
+            "node": "Download Áudio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar Transcrição com Metadados": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resultado Áudio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar Conversa": {
+      "main": [
+        [
+          {
+            "node": "Merge Análise + Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar ou Atualizar dados do Contato": {
+      "main": [
+        [
+          {
+            "node": "Retornar ao WebHook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Dados": {
+      "main": [
+        [
+          {
+            "node": "Retornar ao WebHook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Dados": {
+      "main": [
+        [
+          {
+            "node": "Retornar ao WebHook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procurar Contato": {
+      "main": [
+        [
+          {
+            "node": "Página Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procurar  Contato": {
+      "main": [
+        [
+          {
+            "node": "Este Usuário existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar  Dados": {
+      "main": [
+        [
+          {
+            "node": "Retornar ao WebHook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar  Dados": {
+      "main": [
+        [
+          {
+            "node": "Retornar ao WebHook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6b6202c1-0b21-463e-8ba2-1941f29209d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "92c0529cc01e05211ec4e127dbd20ac10e7127ad0b8d7298d3660bd7146edfc6"
+  },
+  "id": "xwzZBQ88qm79H7pxxVaYX",
+  "tags": []
+}

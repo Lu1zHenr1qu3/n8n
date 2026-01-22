@@ -1,0 +1,396 @@
+{
+  "name": "Transcritor de curso",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -32
+      ],
+      "id": "863cd66e-4e77-46f3-804a-b0d42ed7a56a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=",
+        "limit": 40,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "value": "1tUSL-NYQQZyDPe7i1k78hPbbfnvX8mbx",
+            "mode": "list",
+            "cachedResultName": "Audios para serem transcritos",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1tUSL-NYQQZyDPe7i1k78hPbbfnvX8mbx"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        -32
+      ],
+      "id": "1b07917f-8389-45bf-9300-8bbb50df3815",
+      "name": "Buscando arquivos dentro da pasta",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fzLnfjaUiCerHZ3T",
+          "name": "Credencial Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        288,
+        -32
+      ],
+      "id": "c375613d-0c48-4d47-9859-35b61283d52b",
+      "name": "Baixando os arquivos",
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fzLnfjaUiCerHZ3T",
+          "name": "Credencial Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "44e41035-d242-4fd0-b9b7-63993207b51e",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "=completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        -96
+      ],
+      "id": "2e6819e1-1e20-4b63-ab66-553552577c51",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        80
+      ],
+      "id": "67b7c476-341a-4e54-8b17-c25ace3fc5a9",
+      "name": "Wait",
+      "webhookId": "97af0aeb-7b59-4a2c-9669-54df30bb69cf"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.assemblyai.com/v2/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "name": "Authorization",
+              "value": "YOUR_ASSEMBLYAI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        -32
+      ],
+      "id": "2b42e985-a3d8-4153-b475-93d0c83fa535",
+      "name": "Fazendo Upload do arquivo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "p3jh3CMXQrAkXmpN",
+          "name": "AssemblyAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.assemblyai.com/v2/transcript",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"audio_url\": \"{{ $json.upload_url }}\",\n\"language_code\": \"pt\",\n\"punctuate\": true,\n\"format_text\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        736,
+        -32
+      ],
+      "id": "fcb37a64-36cf-40b8-8725-72dedb42206c",
+      "name": "Fazendo a transcricao",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "p3jh3CMXQrAkXmpN",
+          "name": "AssemblyAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.assemblyai.com/v2/transcript/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -32
+      ],
+      "id": "21b12c17-dc86-4ffc-8cf0-a1c09f62cb9e",
+      "name": "Verificando se a transcricao do arquivo esta correta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "p3jh3CMXQrAkXmpN",
+          "name": "AssemblyAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        -144
+      ],
+      "id": "9b53424f-4cfd-4ade-b210-8c6d248c61e4",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "name": "={{\n  (() => {\n    // Defina aqui o nome base manualmente (sem número e sem extensão)\n    const manualBase = 'Curso_Ladeira_Automacoes_inteligentes_N8N';\n\n    // Pega o nome original (que só tem número e extensão), ex.: \" (1).mp3\" ou \"1.mp3\"\n    const original = $('Buscando arquivos dentro da pasta').item.json.name || '';\n\n    // 1) Remove extensão\n    let base = original.replace(/\\.[^.]+$/, '');\n\n    // 2) Extrai número (suporta \" (1)\" no final ou apenas \"1\")\n    //    - pega o último grupo de dígitos no fim da string\n    let num = '';\n    const numParen = base.match(/\\((\\d+)\\)\\s*$/);     // \"(1)\"\n    const numPlain = base.match(/(\\d+)\\s*$/);         // \"1\"\n    if (numParen) num = numParen[1];\n    else if (numPlain) num = numPlain[1];\n\n    // 3) Limpeza do manualBase para underscores\n    let cleanedManual = manualBase\n      .replace(/\\([^)]*\\)/g, '')     // remove trechos entre parênteses\n      .replace(/\\./g, '')            // remove pontos\n      .replace(/\\s*[-–—]\\s*/g, '_')  // \" - \" e travessões -> underscore\n      .replace(/-/g, '_')            // hifens -> underscore\n      .replace(/\\s+/g, '_')          // espaços -> underscore\n      .replace(/_+/g, '_')           // normaliza underscores duplicados\n      .replace(/^_+|_+$/g, '');      // remove underscores das bordas\n\n    const prefix = 'Transcricao';\n    const suffix = 'txt';\n    const numberPart = num ? `_${num}` : '';\n\n    // Formato: Transcricao_<manual>_<numero>_txt\n    return `${prefix}_${cleanedManual}${numberPart}_${suffix}`;\n  })()\n}}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Ci9WCNT8Yxr4jpeKRI9wk2Lr9JVZnwwk",
+          "mode": "list",
+          "cachedResultName": "N8N",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Ci9WCNT8Yxr4jpeKRI9wk2Lr9JVZnwwk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1632,
+        -144
+      ],
+      "id": "a37fe5e2-d3a4-43a8-ab11-991627ddf7ce",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fzLnfjaUiCerHZ3T",
+          "name": "Credencial Google Drive"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Buscando arquivos dentro da pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscando arquivos dentro da pasta": {
+      "main": [
+        [
+          {
+            "node": "Baixando os arquivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixando os arquivos": {
+      "main": [
+        [
+          {
+            "node": "Fazendo Upload do arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Verificando se a transcricao do arquivo esta correta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fazendo Upload do arquivo": {
+      "main": [
+        [
+          {
+            "node": "Fazendo a transcricao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fazendo a transcricao": {
+      "main": [
+        [
+          {
+            "node": "Verificando se a transcricao do arquivo esta correta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificando se a transcricao do arquivo esta correta": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "9e7c0181-8c00-41d0-8e7e-fc61bfba22d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "92c0529cc01e05211ec4e127dbd20ac10e7127ad0b8d7298d3660bd7146edfc6"
+  },
+  "id": "M2kbWGi2wtT80R5J",
+  "tags": []
+}

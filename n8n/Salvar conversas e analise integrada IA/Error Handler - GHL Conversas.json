@@ -1,0 +1,136 @@
+{
+  "name": "Error Handler - GHL Conversas",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const error = $input.item.json;\n\n// Error Trigger passa: error.execution.error\nconst execution = error.execution || {};\nconst errorObj = execution.error || {};\nconst nodeExecuted = execution.lastNodeExecuted || 'unknown';\nconst workflow = error.workflow || {};\n\nconst errorMessage = errorObj.message || 'No error message';\nconst errorType = errorObj.name || errorObj.code || 'unknown_error';\nconst nodeName = nodeExecuted;\nconst stackTrace = errorObj.stack || null;\nconst executionId = String(execution.id || '');\nconst workflowName = workflow.name || 'GHL Conversas';\n\n// Tentar extrair dados do contexto original (se disponível)\nconst inputData = error.inputData || {};\nconst mainData = inputData.main?.[0]?.[0]?.json || {};\nconst contactId = mainData.contact_id || mainData.body?.contact_id || null;\nconst conversationId = mainData.conversation_id || null;\n\nreturn [{\n  json: {\n    workflow_name: workflowName,\n    execution_id: executionId,\n    error_type: errorType,\n    error_message: errorMessage,\n    node_name: nodeName,\n    contact_id: contactId,\n    conversation_id: conversationId,\n    stack_trace: stackTrace,\n    full_error: error  // Objeto completo do Error Trigger\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "cd0c631f-7a7e-4bfd-b34a-0e9eb4963419",
+      "name": "Format Error Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qyrkyvoilfaxppbvtkpi.supabase.co/rest/v1/error_logs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "5576c1c7-f4fa-419b-b7cd-43173ee00381",
+      "name": "Salvar Erro no Supabase",
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "QRKmdmb6ATKfLVLi",
+          "name": "Autorizacao SupaBase Sistema Recrutamento"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "51cf7b82-c274-4094-9144-95690f5412c0",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.item.json;\n\n// Construir o body do Supabase\nconst body = {\n  workflow_name: input.workflow_name || 'unknown',\n  execution_id: String(input.execution_id || ''),\n  error_type: input.error_type || 'unknown_error',\n  error_message: input.error_message || 'No error message',\n  node_name: input.node_name || 'unknown',\n  contact_id: input.contact_id || null,\n  conversation_id: input.conversation_id || null,\n  stack_trace: input.stack_trace || null,\n  full_error: input.full_error  // Objeto completo - será serializado pelo n8\n};\n\nreturn [{\n  json: body\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "652ab738-3645-43f4-ab1e-d91118cbeab5",
+      "name": "Preparar Body para Supabase"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Format Error Message": {
+      "main": [
+        [
+          {
+            "node": "Preparar Body para Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Erro no Supabase": {
+      "main": [
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Body para Supabase": {
+      "main": [
+        [
+          {
+            "node": "Salvar Erro no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "e79d4024-1a2e-47bd-9b34-fb91dda924f7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "92c0529cc01e05211ec4e127dbd20ac10e7127ad0b8d7298d3660bd7146edfc6"
+  },
+  "id": "trEMKvk71z4TCDLp7iMxn",
+  "tags": []
+}

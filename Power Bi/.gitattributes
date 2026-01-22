@@ -1,6 +1,0 @@
-# Handle .pbix files as binary
-*.pbix binary
-*.pbip binary
-
-# Normalize line endings
-* text=auto

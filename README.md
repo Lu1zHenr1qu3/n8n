@@ -28,7 +28,7 @@ Portfólio de automações desenvolvidas com n8n demonstrando integrações avan
 - API Biologix Sleep (autenticação e consulta de exames)
 - Airtable (armazenamento de dados de pacientes e exames)
 
-**Documentação Completa:** [n8n/Sincronizacao-Biologix-Airtable/README.md](./n8n/Sincronizacao-Biologix-Airtable/README.md)
+**Documentação Completa:** [Sincronizacao-Biologix-Airtable/README.md](./Sincronizacao-Biologix-Airtable/README.md)
 
 ---
 
@@ -40,7 +40,7 @@ Portfólio de automações desenvolvidas com n8n demonstrando integrações avan
 - GoHighLevel (webhook de atualização de oportunidades)
 - Google Sheets (armazenamento organizado por estágio)
 
-**Documentação Completa:** [n8n/Segmentacao-Leads-Pipeline/README.md](./n8n/Segmentacao-Leads-Pipeline/README.md)
+**Documentação Completa:** [Segmentacao-Leads-Pipeline/README.md](./Segmentacao-Leads-Pipeline/README.md)
 
 ---
 
@@ -54,7 +54,7 @@ Portfólio de automações desenvolvidas com n8n demonstrando integrações avan
 - OpenAI API (geração de embeddings)
 - Supabase (banco de dados PostgreSQL com busca vetorial)
 
-**Documentação Completa:** [n8n/Salvar conversas e analise integrada IA/README.md](./n8n/Salvar%20conversas%20e%20analise%20integrada%20IA/README.md)
+**Documentação Completa:** [Salvar conversas e analise integrada IA/README.md](./Salvar%20conversas%20e%20analise%20integrada%20IA/README.md)
 
 ---
 
@@ -66,7 +66,7 @@ Portfólio de automações desenvolvidas com n8n demonstrando integrações avan
 - Google Drive (armazenamento de arquivos de áudio e transcrições)
 - AssemblyAI (transcrição de áudio para texto)
 
-**Documentação Completa:** [n8n/Transcritor de curso/README.md](./n8n/Transcritor%20de%20curso/README.md)
+**Documentação Completa:** [Transcritor de curso/README.md](./Transcritor%20de%20curso/README.md)
 
 ---
 
@@ -80,7 +80,7 @@ Portfólio de automações desenvolvidas com n8n demonstrando integrações avan
 
 Todas as credenciais devem ser configuradas no ambiente n8n antes de executar os workflows.
 
-**📖 Guia de Configuração:** Consulte [n8n/CONFIGURACAO_CREDENCIAIS.md](./n8n/CONFIGURACAO_CREDENCIAIS.md) para instruções detalhadas sobre como configurar as credenciais necessárias.
+**📖 Guia de Configuração:** Consulte [CONFIGURACAO_CREDENCIAIS.md](./CONFIGURACAO_CREDENCIAIS.md) para instruções detalhadas sobre como configurar as credenciais necessárias.
 
 ---
 

@@ -14,7 +14,11 @@ Sistema avançado que exporta conversas completas do GoHighLevel, processa com I
 
 ## 📊 Fluxo do Workflow Principal
 
-![Workflow Visual](./GHL%20-%20Exportar%20Conversas.png)
+<img width="2487" height="397" alt="1" src="https://github.com/user-attachments/assets/d82b9a92-3e05-471e-a03a-1e6cc09030e3" />
+<img width="2093" height="752" alt="2" src="https://github.com/user-attachments/assets/5fe84328-31d5-46b8-8fb9-4cc087520a81" />
+
+
+
 
 ### Fluxo Detalhado:
 
